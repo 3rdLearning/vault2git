@@ -1,0 +1,32 @@
+<Include>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\8.0\InstalledProducts\DragnetVsipClient" Value="#110" Type="string">
+    <Registry Name="Package" Value="{bf3a1c52-1b02-421b-b8db-2700bc98e85f}" Type="string" />
+    <Registry Name="ProductDetails" Value="#110" Type="string" />
+    <Registry Name="PID" Value="5.1.2.19281" Type="string" />
+    <Registry Name="LogoID" Value="#400" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\8.0\Packages\{bf3a1c52-1b02-421b-b8db-2700bc98e85f}" Value="SourceGearLLC.DragnetVsipClient.DragnetVsipClient, VaultProVsipClient, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=14a8075ce88af4e0" Type="string">
+    <Registry Name="InprocServer32" Value="[SystemFolder]mscoree.dll" Type="string" />
+    <Registry Name="Class" Value="SourceGearLLC.DragnetVsipClient.DragnetVsipClient" Type="string" />
+    <Registry Name="Assembly" Value="VaultProVsipClient, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=14a8075ce88af4e0" Type="string" />
+    <Registry Name="ID" Value="104" Type="integer" />
+    <Registry Name="MinEdition" Value="Standard" Type="string" />
+    <Registry Name="ProductVersion" Value="1.0" Type="string" />
+    <Registry Name="ProductName" Value="SourceGear Fortress VSIP Client" Type="string" />
+    <Registry Name="CompanyName" Value="SourceGear LLC" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\8.0\Menus">
+    <Registry Name="{bf3a1c52-1b02-421b-b8db-2700bc98e85f}" Value=", 1000, 1" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\8.0\ToolWindows\{9b5f51d2-a124-4a3f-b77f-cf3c56c47cfd}" Value="{bf3a1c52-1b02-421b-b8db-2700bc98e85f}" Type="string">
+    <Registry Name="Name" Value="SourceGearLLC.DragnetVsipClient.DragnetHeirarchyWindow" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\8.0\ToolWindows\{ece7ee92-6351-4007-8d4e-88b9ceae206f}" Value="{bf3a1c52-1b02-421b-b8db-2700bc98e85f}" Type="string">
+    <Registry Name="Name" Value="SourceGearLLC.DragnetVsipClient.GotoToolWindow" Type="string" />
+  </Registry>
+</Include>

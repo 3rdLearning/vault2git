@@ -1,0 +1,72 @@
+<Include>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\InstalledProducts\VaultVsipClient" Value="#100" Type="string">
+    <Registry Name="Package" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string" />
+    <Registry Name="ProductDetails" Value="#100" Type="string" />
+    <Registry Name="PID" Value="5.1.2.19281" Type="string" />
+    <Registry Name="LogoID" Value="#400" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\Packages\{1ea47954-8515-402d-82d9-b5c332120a8d}" Value="SourceGearLLC.VaultVsipClient.VaultVsipClient, VaultVsipClient, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=d0dd1817f18e65b3" Type="string">
+    <Registry Name="InprocServer32" Value="[SystemFolder]mscoree.dll" Type="string" />
+    <Registry Name="Class" Value="SourceGearLLC.VaultVsipClient.VaultVsipClient" Type="string" />
+    <Registry Name="Assembly" Value="VaultVsipClient, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=d0dd1817f18e65b3" Type="string" />
+    <Registry Name="ID" Value="152" Type="integer" />
+    <Registry Name="MinEdition" Value="standard" Type="string" />
+    <Registry Name="ProductVersion" Value="1.0" Type="string" />
+    <Registry Name="ProductName" Value="SourceGear Vault Visual Studio SCC Client" Type="string" />
+    <Registry Name="CompanyName" Value="SourceGear LLC" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\AutoLoadPackages\{1ea47954-8515-402d-82d9-b5c332120a8d}">
+    <Registry Name="{1ea47954-8515-402d-82d9-b5c332120a8d}" Value="0" Type="integer" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\Menus">
+    <Registry Name="{1ea47954-8515-402d-82d9-b5c332120a8d}" Value=", 1000, 1" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\ToolsOptionsPages\Source Control" Value="#106" Type="string">
+    <Registry Name="Package" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\ToolsOptionsPages\Source Control\Integration Options" Value="#107" Type="string">
+    <Registry Name="Package" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string" />
+    <Registry Name="Page" Value="{62900d9b-a316-4e35-aca3-6271c177f905}" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\ToolsOptionsPages\Source Control\Integration Options\VisibilityCmdUIContexts">
+    <Registry Name="{1ea47954-8515-402d-82d9-b5c332120a8d}" Value="1" Type="integer" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\ToolsOptionsPages\Source Control\Vault Options" Value="#108" Type="string">
+    <Registry Name="Package" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string" />
+    <Registry Name="Page" Value="{55601954-4081-4f5c-9f5e-9d38fd8bcd9a}" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\ToolsOptionsPages\Source Control\Vault Options\VisibilityCmdUIContexts">
+    <Registry Name="{1ea47954-8515-402d-82d9-b5c332120a8d}" Value="1" Type="integer" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\Services\{1ea47954-8515-402d-82d9-b5c332120a8d}" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string">
+    <Registry Name="Name" Value="SourceGear Vault Visual Studio 2005 Client Provider Service" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\ToolWindows\{e2820346-f79e-47d4-8690-f7eaf8b0c0dd}" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string">
+    <Registry Name="Name" Value="SourceGearLLC.VaultVsipClient.PendingChangesPane" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\ToolWindows\{e2820346-f79e-47d4-8690-f7eaf8b0c0dd}\Visibility">
+    <Registry Name="{1ea47954-8515-402d-82d9-b5c332120a8d}" Value="0" Type="integer" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\SolutionPersistence\VaultVsipSolution-v2" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string" />
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\SourceControlProviders\{1ea47954-8515-402d-82d9-b5c332120a8d}" Value="SourceGear Vault Standard Visual Studio Enhanced Client" Type="string">
+    <Registry Name="Service" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string" />
+  </Registry>
+
+  <Registry Root="HKLM" Key="Software\Microsoft\VisualStudio\9.0\SourceControlProviders\{1ea47954-8515-402d-82d9-b5c332120a8d}\Name" Value="#100" Type="string">
+    <Registry Name="Package" Value="{1ea47954-8515-402d-82d9-b5c332120a8d}" Type="string" />
+  </Registry>
+</Include>
