@@ -57,25 +57,25 @@ namespace Vault2Git.CLI
 					}
 					else
 						if (o.StartsWith(_limitParam))
-						{
-							var l = o.Substring(_limitParam.Length);
-							var max = 0;
-							if (int.TryParse(l, out max))
-								p.Limit = max;
-							else
-								errors.Add(string.Format("Incorrect limit ({0}). Use integer.", l));
-						}
+					{
+						var l = o.Substring(_limitParam.Length);
+						var max = 0;
+						if (int.TryParse(l, out max))
+							p.Limit = max;
 						else
+							errors.Add(string.Format("Incorrect limit ({0}). Use integer.", l));
+					}
+					else
 							if (o.StartsWith(_branchParam))
-							{
-								var b = o.Substring(_limitParam.Length);
-								if (gitBranches.Contains(b))
-									branches.Add(b);
-								else
-									errors.Add(string.Format("Unknown branch {0}. Use one specified in .config", b));
-							}
-							else
-								errors.Add(string.Format("Unknown option {0}", o));
+					{
+						var b = o.Substring(_limitParam.Length);
+						if (gitBranches.Contains(b))
+							branches.Add(b);
+						else
+							errors.Add(string.Format("Unknown branch {0}. Use one specified in .config", b));
+					}
+					else
+						errors.Add(string.Format("Unknown option {0}", o));
 				}
 				p.Branches = 0 == branches.Count()
 					? gitBranches
@@ -125,17 +125,19 @@ namespace Vault2Git.CLI
 			_ignoreLabels = param.IgnoreLabels;
 
 			var processor = new Vault2Git.Lib.Processor()
-								{
-									WorkingFolder = ConfigurationManager.AppSettings["Convertor.WorkingFolder"],
-									GitCmd = ConfigurationManager.AppSettings["Convertor.GitCmd"],
-									GitDomainName = ConfigurationManager.AppSettings["Git.DomainName"],
-									VaultServer = ConfigurationManager.AppSettings["Vault.Server"],
-									VaultRepository = ConfigurationManager.AppSettings["Vault.Repo"],
-									VaultUser = ConfigurationManager.AppSettings["Vault.User"],
-									VaultPassword = ConfigurationManager.AppSettings["Vault.Password"],
-									Progress = ShowProgress,
-									SkipEmptyCommits = param.SkipEmptyCommits
-								};
+			{
+				WorkingFolder = ConfigurationManager.AppSettings["Convertor.WorkingFolder"],
+				GitCmd = ConfigurationManager.AppSettings["Convertor.GitCmd"],
+				GitDomainName = ConfigurationManager.AppSettings["Git.DomainName"],
+				VaultServer = ConfigurationManager.AppSettings["Vault.Server"],
+				VaultRepository = ConfigurationManager.AppSettings["Vault.Repo"],
+				VaultUser = ConfigurationManager.AppSettings["Vault.User"],
+				VaultPassword = ConfigurationManager.AppSettings["Vault.Password"],
+				RevisionStartDate = ConfigurationManager.AppSettings["RevisionStartDate"] ?? "2005-01-01",
+				RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2020-12-31",
+				Progress = ShowProgress,
+				SkipEmptyCommits = param.SkipEmptyCommits
+			};
 
 
 			processor.Pull

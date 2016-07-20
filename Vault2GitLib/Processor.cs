@@ -82,6 +82,9 @@ namespace Vault2Git.Lib
 		/// </summary>
 		public const int ProgressSpecialVersionTags = -3;
 
+		public string RevisionEndDate { get; set; }
+		public string RevisionStartDate { get; set; }
+
 		/// <summary>
 		/// Pulls versions
 		/// </summary>
@@ -119,7 +122,7 @@ namespace Vault2Git.Lib
 					//get vaultVersions
 					IDictionary<long, VaultVersionInfo> vaultVersions = new SortedList<long, VaultVersionInfo>();
 
-					ticks += this.vaultPopulateInfo(vaultRepoPath, vaultVersions);
+					ticks += vaultPopulateInfo(vaultRepoPath, vaultVersions);
 
 					var versionsToProcess = vaultVersions.Where(p => p.Key > currentGitVaultVersion);
 					var keyValuePairs = versionsToProcess.ToList();
@@ -295,8 +298,8 @@ namespace Vault2Git.Lib
 
 			foreach (var i in ServerOperations.ProcessCommandVersionHistory(repoPath,
 																			1,
-																			VaultDateTime.Parse("2000-01-01"),
-																			VaultDateTime.Parse("2020-01-01"),
+																			VaultDateTime.Parse(RevisionStartDate),
+																			VaultDateTime.Parse(RevisionEndDate),
 																			0))
 				info.Add(i.Version, new VaultVersionInfo()
 										{
