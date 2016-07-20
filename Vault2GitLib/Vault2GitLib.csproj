@@ -88,15 +88,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\DragnetLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\SGDiff.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultClientIntegrationLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultClientNetLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultClientOperationsLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VaultLib.dll" />
-    <Content Include="libs\VaultClientAPI_4_0_6_15954\VCDiff.dll" />
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
       <Visible>False</Visible>
       <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
@@ -115,6 +106,9 @@
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="libs\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
