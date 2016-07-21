@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Vault2Git.Lib;
@@ -123,6 +124,11 @@ namespace Vault2Git.CLI
 			_useConsole = param.UseConsole;
 			_useCapsLock = param.UseCapsLock;
 			_ignoreLabels = param.IgnoreLabels;
+			
+			if (string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["MappingSaveLocation"]))
+			{
+				Console.Error.WriteLine($"Configuration MappingSaveLocation is not defined into application' settings. Please set a valid value.");
+			}
 
 			var processor = new Vault2Git.Lib.Processor()
 			{
@@ -135,6 +141,7 @@ namespace Vault2Git.CLI
 				VaultPassword = ConfigurationManager.AppSettings["Vault.Password"],
 				RevisionStartDate = ConfigurationManager.AppSettings["RevisionStartDate"] ?? "2005-01-01",
 				RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2020-12-31",
+				MappingSaveLocation = ConfigurationManager.AppSettings["MappingSaveLocation"],
 				Progress = ShowProgress,
 				SkipEmptyCommits = param.SkipEmptyCommits
 			};

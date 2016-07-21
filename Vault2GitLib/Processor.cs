@@ -51,6 +51,7 @@ namespace Vault2Git.Lib
 		private const string _gitAddCmd = "add --all .";
 		private const string _gitStatusCmd = "status --porcelain";
 		private const string _gitLastCommitInfoCmd = "log -1 {0}";
+		private const string _gitAllCommitInfoCmd = "log {0}";
 		private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{0}@{1}>"" -F -";
 		private const string _gitCheckoutCmd = "checkout --quiet --force {0}";
 		private const string _gitBranchCmd = "branch";
@@ -60,7 +61,9 @@ namespace Vault2Git.Lib
 		/// <summary>
 		/// Maps Vault TransactionID to Git Commit SHA-1 Hash
 		/// </summary>
-		private IDictionary<long, String> _txidMappings = new Dictionary<long, String>();
+		private IDictionary<long, String> _txidMappings;
+
+		private string currentGitBranch;
 
 		//constants
 		private const string VaultTag = "[git-vault-id]";
@@ -88,6 +91,8 @@ namespace Vault2Git.Lib
 		public string RevisionEndDate { get; set; }
 		public string RevisionStartDate { get; set; }
 
+		public string MappingSaveLocation { get; set; }
+
 		/// <summary>
 		/// Pulls versions
 		/// </summary>
@@ -111,7 +116,7 @@ namespace Vault2Git.Lib
 				foreach (var pair in targetList)
 				{
 
-					var gitBranch = pair.Key;
+					currentGitBranch = pair.Key;
 					var vaultRepoPath = pair.Value;
 
 					long currentGitVaultVersion = 0;
@@ -119,8 +124,9 @@ namespace Vault2Git.Lib
 					//reset ticks
 					ticks = 0;
 
+					RebuildMapping(currentGitBranch);
 					//get current version
-					ticks += gitVaultVersion(gitBranch, ref currentGitVaultVersion);
+					ticks += gitVaultVersion(currentGitBranch, ref currentGitVaultVersion);
 
 					//get vaultVersions
 					IDictionary<long, VaultVersionInfo> vaultVersions = new SortedList<long, VaultVersionInfo>();
@@ -132,7 +138,7 @@ namespace Vault2Git.Lib
 
 					//do init only if there is something to work on
 					if (keyValuePairs.Any())
-						ticks += Init(vaultRepoPath, gitBranch);
+						ticks += Init(vaultRepoPath, currentGitBranch);
 
 					//report init
 					if (null != Progress)
@@ -175,8 +181,7 @@ namespace Vault2Git.Lib
 						//get vault version info
 						var info = vaultVersions[version.Key];
 						//commit
-						ticks += gitCommit(info.Login, info.TrxId, this.GitDomainName,
-										   buildCommitMessage(vaultRepoPath, version.Key, info), info.TimeStamp);
+						ticks += gitCommit(info.Login, info.TrxId, version.Key, GitDomainName, buildCommitMessage(vaultRepoPath, version.Key, info), info.TimeStamp);
 						if (null != Progress)
 							if (Progress(version.Key, keyValuePairs.Count, ticks))
 								return true;
@@ -300,17 +305,17 @@ namespace Vault2Git.Lib
 			var ticks = Environment.TickCount;
 
 			foreach (var i in ServerOperations.ProcessCommandVersionHistory(repoPath,
-																			1,
-																			VaultDateTime.Parse(RevisionStartDate),
-																			VaultDateTime.Parse(RevisionEndDate),
-																			0))
+				1,
+				VaultDateTime.Parse(RevisionStartDate),
+				VaultDateTime.Parse(RevisionEndDate),
+				0))
 				info.Add(i.Version, new VaultVersionInfo()
-										{
-											TrxId = i.TxID,
-											Comment = i.Comment,
-											Login = i.UserLogin,
-											TimeStamp = i.TxDate.GetDateTime()
-										});
+				{
+					TrxId = i.TxID,
+					Comment = i.Comment,
+					Login = i.UserLogin,
+					TimeStamp = i.TxDate.GetDateTime()
+				});
 			return Environment.TickCount - ticks;
 		}
 
@@ -332,10 +337,10 @@ namespace Vault2Git.Lib
 
 			VaultLabelItemX[] labelItems;
 
-			ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath, objId,false,false,true,true, 0,
-																	   out rowsRetMain,
-																	   out rowsRetRecur,
-																	   out qryToken);
+			ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath, objId, false, false, true, true, 0,
+				out rowsRetMain,
+				out rowsRetRecur,
+				out qryToken);
 
 			//ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath,
 			//														   objId,
@@ -346,23 +351,24 @@ namespace Vault2Git.Lib
 			//														   0,    // no limit on results
 			//														   out rowsRetMain,
 			//														   out rowsRetRecur,
-																	   //out qryToken);
+			//out qryToken);
 
 
 			ServerOperations.client.ClientInstance.GetLabelQueryItems_Recursive(qryToken,
-																				0,
-																				(int)rowsRetRecur,
-																				out labelItems);
+				0,
+				(int)rowsRetRecur,
+				out labelItems);
 			try
 			{
 				int ticks = 0;
 
 				foreach (VaultLabelItemX currItem in labelItems)
 				{
-					if (!_txidMappings.ContainsKey(currItem.TxID))
+					var mapping = GetMapping(currItem.Version);
+					if (mapping == null)
 						continue;
 
-					string gitCommitId = _txidMappings.Where(s => s.Key.Equals(currItem.TxID)).First().Value;
+					string gitCommitId = mapping;
 
 					if (gitCommitId != null && gitCommitId.Length > 0)
 					{
@@ -393,23 +399,23 @@ namespace Vault2Git.Lib
 				repoPath,
 				Convert.ToInt32(version),
 				new GetOptions()
-					{
-						MakeWritable = MakeWritableType.MakeAllFilesWritable,
-						Merge = MergeType.OverwriteWorkingCopy,
-						OverrideEOL = VaultEOL.None,
-						//remove working copy does not work -- bug http://support.sourcegear.com/viewtopic.php?f=5&t=11145
-						PerformDeletions = PerformDeletionsType.RemoveWorkingCopy,
-						SetFileTime = SetFileTimeType.Current,
-						Recursive = true
-					});
+				{
+					MakeWritable = MakeWritableType.MakeAllFilesWritable,
+					Merge = MergeType.OverwriteWorkingCopy,
+					OverrideEOL = VaultEOL.None,
+					//remove working copy does not work -- bug http://support.sourcegear.com/viewtopic.php?f=5&t=11145
+					PerformDeletions = PerformDeletionsType.RemoveWorkingCopy,
+					SetFileTime = SetFileTimeType.Current,
+					Recursive = true
+				});
 
 			//now process deletions, moves, and renames (due to vault bug)
 			var allowedRequests = new int[]
-									  {
-										  9, //delete
-										  12, //move
-										  15 //rename
-									  };
+			{
+				9, //delete
+				12, //move
+				15 //rename
+			};
 			foreach (var item in ServerOperations.ProcessCommandTxDetail(txId).items
 				.Where(i => allowedRequests.Contains(i.RequestType)))
 
@@ -471,7 +477,8 @@ namespace Vault2Git.Lib
 			return unSetVaultWorkingFolder(vaultRepoPath);
 		}
 
-		private int gitCommit(string vaultLogin, long vaultTrxid, string gitDomainName, string vaultCommitMessage, DateTime commitTimeStamp)
+		private int gitCommit(string vaultLogin, long vaultTrxid, long vaultVersion, string gitDomainName, string vaultCommitMessage,
+			DateTime commitTimeStamp)
 		{
 			string gitCurrentBranch;
 			this.gitCurrentBranch(out gitCurrentBranch);
@@ -486,7 +493,7 @@ namespace Vault2Git.Lib
 					string.Empty,
 					out msgs
 					);
-				if (0 == msgs.Count())
+				if (!msgs.Any())
 					return ticks;
 			}
 			ticks += runGitCommand(
@@ -500,7 +507,7 @@ namespace Vault2Git.Lib
 			{
 				string gitCommitId = msgs[0].Split(' ')[1];
 				gitCommitId = gitCommitId.Substring(0, gitCommitId.Length - 1);
-				_txidMappings.Add(vaultTrxid, gitCommitId);
+				AddMapping(vaultVersion, gitCommitId);
 			}
 			return ticks;
 		}
@@ -548,6 +555,11 @@ namespace Vault2Git.Lib
 			return runGitCommand(string.Format(_gitLastCommitInfoCmd, gitBranch), string.Empty, out msg);
 		}
 
+		private int getGitLogs(string gitBranch, out string[] msgLines)
+		{
+			return runGitCommand(string.Format(_gitAllCommitInfoCmd, gitBranch), string.Empty, out msgLines);
+		}
+
 		private int gitAddTag(string gitTagName, string gitCommitId, string gitTagComment)
 		{
 			string[] msg;
@@ -588,29 +600,31 @@ namespace Vault2Git.Lib
 				ServerOperations.RemoveWorkingFolder(exPath);
 			return Environment.TickCount - ticks;
 		}
+
 		private int runGitCommand(string cmd, string stdInput, out string[] stdOutput)
 		{
 			return runGitCommand(cmd, stdInput, out stdOutput, null);
 		}
+
 		private int runGitCommand(string cmd, string stdInput, out string[] stdOutput, IDictionary<string, string> env)
 		{
 			var ticks = Environment.TickCount;
 
 			var pi = new ProcessStartInfo(GitCmd, cmd)
-						 {
-							 WorkingDirectory = WorkingFolder,
-							 UseShellExecute = false,
-							 RedirectStandardOutput = true,
-							 RedirectStandardInput = true
-						 };
+			{
+				WorkingDirectory = WorkingFolder,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardInput = true
+			};
 			//set env vars
 			if (null != env)
 				foreach (var e in env)
 					pi.EnvironmentVariables.Add(e.Key, e.Value);
 			using (var p = new Process()
-							   {
-								   StartInfo = pi
-							   })
+			{
+				StartInfo = pi
+			})
 			{
 				p.Start();
 				p.StandardInput.Write(stdInput);
@@ -642,6 +656,7 @@ namespace Vault2Git.Lib
 			}
 			return Environment.TickCount - ticks;
 		}
+
 		private int vaultLogout()
 		{
 			var ticks = Environment.TickCount;
@@ -649,5 +664,62 @@ namespace Vault2Git.Lib
 			return Environment.TickCount - ticks;
 		}
 
+		private void AddMapping(long vault, string git)
+		{
+			if (_txidMappings == null || _txidMappings.Count == 0)
+			//Reload from file
+			{
+				_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => long.Parse(kp.Key), kp => kp.Value) ?? new Dictionary<long, string>();
+			}
+			if (_txidMappings.ContainsKey(vault))
+			{
+				var formerValue = _txidMappings[vault];
+				_txidMappings[vault] = git;
+				Console.WriteLine($"Updated value for existing key {vault} from {formerValue} to {git}.");
+			}
+
+			_txidMappings.Add(new KeyValuePair<long, string>(vault, git));
+			Tools.SaveMapping(_txidMappings, MappingSaveLocation);
+		}
+
+		private string GetMapping(long key)
+		{
+			if (_txidMappings == null || _txidMappings.Count == 0)
+			//Reload from file
+			{
+				_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => long.Parse(kp.Key), kp => kp.Value) ?? new Dictionary<long, string>();
+			}
+			if (!_txidMappings.ContainsKey(key))
+			{
+				// Rebuild mapping from git
+				Console.WriteLine($"Missing an entry for key {key}, trying to rebuild mapping from git repository...");
+				_txidMappings = RebuildMapping(currentGitBranch);
+				if (!_txidMappings.ContainsKey(key))
+				{
+					return null;
+				}
+				return _txidMappings[key];
+			}
+			return _txidMappings[key];
+		}
+
+		private IDictionary<long, string> RebuildMapping(string gitBranch)
+		{
+			string[] msgs;
+
+			getGitLogs(gitBranch, out msgs);
+			var filtered = msgs.Where(l => l.Contains(VaultTag) || l.StartsWith("commit ")).ToArray();
+			var commitInfos = new Dictionary<long, string>();
+			for (var i = 0; i < filtered.Length - 1; i += 2)
+			{
+				var comitId = filtered[i].Replace("commit", string.Empty).Trim();
+				var split = filtered[i + 1].Replace(VaultTag, string.Empty).Trim().Split('/');
+				if (split.Length != 3)
+					continue;
+				commitInfos.Add(long.Parse(split[1].Split('@')[1]), comitId);
+			}
+			Tools.SaveMapping(commitInfos, MappingSaveLocation);
+			return commitInfos;
+		}
 	}
 }

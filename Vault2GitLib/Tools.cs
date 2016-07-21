@@ -29,7 +29,16 @@ namespace Vault2Git.Lib
 
 		public static Dictionary<string, string> ReadFromXml(string saveFileName)
 		{
-			return XElement2Dictionnary(XDocument.Load(saveFileName).Root);
+			if (!File.Exists(saveFileName))
+				return null;
+			try
+			{
+				return XElement2Dictionnary(XDocument.Load(saveFileName).Root);
+			}
+			catch (Exception e)
+			{
+				return null;
+			}
 		}
 	}
 }
