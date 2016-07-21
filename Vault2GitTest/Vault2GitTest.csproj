@@ -72,6 +72,7 @@
   <ItemGroup>
     <Compile Include="CSProjTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestTools.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vault2GitLib\Vault2GitLib.csproj">

@@ -35,6 +35,9 @@ namespace Vault2Git.Lib
 
 		public int GitGCInterval = 200;
 
+		// Stores whether the login has been already accomplished or not. Prevent an issue with our current Vault version (v5)
+		private bool _loginDone = false;
+
 		//callback
 		public Func<long, long, int, bool> Progress;
 
@@ -196,7 +199,7 @@ namespace Vault2Git.Lib
 			finally
 			{
 				//complete
-				ticks += vaultLogout();
+				//ticks += vaultLogout(); // Drops log-out as it kills the Native allocations
 				//finalize git (update server info for dumb clients)
 				ticks += gitFinalize();
 				if (null != Progress)
@@ -320,7 +323,7 @@ namespace Vault2Git.Lib
 			vaultLogin();
 
 			// Search for all labels recursively
-			string repositoryFolderPath = "$";
+			string repositoryFolderPath = "$/HEAD";
 
 			long objId = RepositoryUtil.FindVaultTreeObjectAtReposOrLocalPath(repositoryFolderPath).ID;
 			string qryToken;
@@ -329,16 +332,21 @@ namespace Vault2Git.Lib
 
 			VaultLabelItemX[] labelItems;
 
-			ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath,
-																	   objId,
-																	   true, // get recursive
-																	   true, // get inherited
-																	   true, // get file items
-																	   true, // get folder items
-																	   0,    // no limit on results
+			ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath, objId,false,false,true,true, 0,
 																	   out rowsRetMain,
 																	   out rowsRetRecur,
 																	   out qryToken);
+
+			//ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath,
+			//														   objId,
+			//														   true, // get recursive
+			//														   true, // get inherited
+			//														   true, // get file items
+			//														   true, // get folder items
+			//														   0,    // no limit on results
+			//														   out rowsRetMain,
+			//														   out rowsRetRecur,
+																	   //out qryToken);
 
 
 			ServerOperations.client.ClientInstance.GetLabelQueryItems_Recursive(qryToken,
@@ -619,15 +627,19 @@ namespace Vault2Git.Lib
 		private int vaultLogin()
 		{
 			var ticks = Environment.TickCount;
-			ServerOperations.client.ClientInstance.WorkingFolderOptions.StoreDataInWorkingFolders = false;
-			ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
-			ServerOperations.client.LoginOptions.User = this.VaultUser;
-			ServerOperations.client.LoginOptions.Password = this.VaultPassword;
-			ServerOperations.client.LoginOptions.Repository = this.VaultRepository;
-			ServerOperations.Login();
-			ServerOperations.client.MakeBackups = false;
-			ServerOperations.client.AutoCommit = false;
-			ServerOperations.client.Verbose = true;
+			if (ServerOperations.client.ClientInstance.ConnectionStateType == ConnectionStateType.Unconnected)
+			{
+				ServerOperations.client.ClientInstance.WorkingFolderOptions.StoreDataInWorkingFolders = false;
+				ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
+				ServerOperations.client.LoginOptions.User = this.VaultUser;
+				ServerOperations.client.LoginOptions.Password = this.VaultPassword;
+				ServerOperations.client.LoginOptions.Repository = this.VaultRepository;
+				ServerOperations.Login();
+				ServerOperations.client.MakeBackups = false;
+				ServerOperations.client.AutoCommit = false;
+				ServerOperations.client.Verbose = true;
+				_loginDone = true;
+			}
 			return Environment.TickCount - ticks;
 		}
 		private int vaultLogout()
