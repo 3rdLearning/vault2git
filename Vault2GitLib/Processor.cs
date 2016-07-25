@@ -364,22 +364,17 @@ namespace Vault2Git.Lib
 
 				foreach (VaultLabelItemX currItem in labelItems)
 				{
-					var mapping = GetMapping(currItem.Version);
-					if (mapping == null)
-						continue;
+					Console.WriteLine($"Processing label {currItem.LabelID} for version {currItem.Version} with comemnt {currItem.Comment}");
+					var gitCommitId = GetMapping(currItem.Version);
 
-					string gitCommitId = mapping;
+					if (!(gitCommitId?.Length > 0)) continue;
 
-					if (gitCommitId != null && gitCommitId.Length > 0)
-					{
-						string gitLabelName = Regex.Replace(currItem.Label, "[\\W]", "_");
-						ticks += gitAddTag(currItem.TxID + "_" + gitLabelName, gitCommitId, currItem.Comment);
-					}
+					var gitLabelName = Regex.Replace(currItem.Label, "[\\W]", "_");
+					ticks += gitAddTag($"{currItem.Version}_{gitLabelName}", gitCommitId, currItem.Comment);
 				}
 
 				//add ticks for git tags
-				if (null != Progress)
-					Progress(ProgressSpecialVersionTags, 0L, ticks);
+				Progress?.Invoke(ProgressSpecialVersionTags, 0L, ticks);
 			}
 			finally
 			{
@@ -644,6 +639,8 @@ namespace Vault2Git.Lib
 			if (ServerOperations.client.ClientInstance.ConnectionStateType == ConnectionStateType.Unconnected)
 			{
 				ServerOperations.client.ClientInstance.WorkingFolderOptions.StoreDataInWorkingFolders = false;
+				ServerOperations.client.ClientInstance.Connection.SetTimeouts(Convert.ToInt32(TimeSpan.FromMinutes(10).TotalSeconds)
+					, Convert.ToInt32(TimeSpan.FromMinutes(10).TotalSeconds));
 				ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
 				ServerOperations.client.LoginOptions.User = this.VaultUser;
 				ServerOperations.client.LoginOptions.Password = this.VaultPassword;
