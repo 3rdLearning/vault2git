@@ -511,7 +511,13 @@ namespace Vault2Git.Lib
 		{
 			string[] msgs;
 			var ticks = runGitCommand(_gitBranchCmd, string.Empty, out msgs);
-			currentBranch = msgs.Where(s => s.StartsWith("*")).First().Substring(1).Trim();
+			if (msgs.Any())
+				currentBranch = msgs.Where(s => s.StartsWith("*")).First().Substring(1).Trim();
+			else
+			{
+				currentBranch = string.Empty;
+				throw new InvalidOperationException("The local git repository doesn't contain any branches. Please create at least one.");
+			}
 			return ticks;
 		}
 
