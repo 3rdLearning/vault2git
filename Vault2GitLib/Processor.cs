@@ -304,11 +304,13 @@ namespace Vault2Git.Lib
 		{
 			var ticks = Environment.TickCount;
 
-			foreach (var i in ServerOperations.ProcessCommandVersionHistory(repoPath,
-				1,
+			var historyItems = ServerOperations.ProcessCommandVersionHistory(repoPath,
+				0,
 				VaultDateTime.Parse(RevisionStartDate),
 				VaultDateTime.Parse(RevisionEndDate),
-				0))
+				0);
+
+			foreach (var i in historyItems)
 				info.Add(i.Version, new VaultVersionInfo()
 				{
 					TrxId = i.TxID,

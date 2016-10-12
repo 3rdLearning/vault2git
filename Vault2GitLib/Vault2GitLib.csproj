@@ -56,7 +56,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="DragnetLib">
-      <HintPath>libs\DragnetLib.dll</HintPath>
+      <HintPath>libs\VaultClientAPI_5_1_2_19281\DragnetLib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
@@ -71,19 +71,19 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="VaultClientIntegrationLib">
-      <HintPath>libs\VaultClientIntegrationLib.dll</HintPath>
+      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultClientIntegrationLib.dll</HintPath>
     </Reference>
     <Reference Include="VaultClientNetLib">
-      <HintPath>libs\VaultClientNetLib.dll</HintPath>
+      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultClientNetLib.dll</HintPath>
     </Reference>
     <Reference Include="VaultClientOperationsLib">
-      <HintPath>libs\VaultClientOperationsLib.dll</HintPath>
+      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultClientOperationsLib.dll</HintPath>
     </Reference>
     <Reference Include="VaultLib">
-      <HintPath>libs\VaultLib.dll</HintPath>
+      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultLib.dll</HintPath>
     </Reference>
     <Reference Include="VCDiff">
-      <HintPath>libs\VCDiff.dll</HintPath>
+      <HintPath>libs\VaultClientAPI_5_1_2_19281\VCDiff.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
