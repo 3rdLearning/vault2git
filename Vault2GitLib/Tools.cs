@@ -46,9 +46,9 @@ namespace Vault2Git.Lib
 		{
 			try
 			{
-				var percentage = Math.Round((decimal)(completedVersion / totalVersion) * 100, 0);
+				var percentage = Math.Round(Convert.ToDouble(completedVersion / totalVersion), 1);
 				var averageProcessingTime = TimeSpan.FromSeconds((int)(totalProcessingTime.TotalSeconds / completedVersion));
-				var timeLeft = TimeSpan.FromSeconds(averageProcessingTime.TotalSeconds*(totalVersion - completedVersion));
+				var timeLeft = TimeSpan.FromSeconds(averageProcessingTime.TotalSeconds * (totalVersion - completedVersion));
 				var etc = DateTime.Now + timeLeft;
 				Console.WriteLine(
 					$"[{DateTime.Now.ToLocalTime()}] - Processed version {completedVersion} of {totalVersion} ({percentage}%) in {processingTime}. ETC: {etc} (in {timeLeft} at {averageProcessingTime}/version)");
