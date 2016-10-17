@@ -101,6 +101,9 @@ namespace Vault2Git.Lib
 		/// <returns></returns>
 		public bool Pull(IEnumerable<KeyValuePair<string, string>> git2vaultRepoPath, long limitCount)
 		{
+			var completedStepCount=0;
+			var versionProcessingTime = new Stopwatch();
+			var overallProcessingTime = new Stopwatch();
 			int ticks = 0;
 			//get git current branch
 			string gitCurrentBranch;
@@ -146,11 +149,14 @@ namespace Vault2Git.Lib
 							return true;
 
 					var counter = 0;
-
+					overallProcessingTime.Restart();
 					foreach (var version in keyValuePairs)
 					{
+						versionProcessingTime.Restart();
 						//get vault version
+						Console.Write($"Starting get version {version.Key} from Vault...");
 						ticks = vaultGet(vaultRepoPath, version.Key, version.Value.TrxId);
+						Console.WriteLine($" done!");
 						//change all sln files
 						Directory.GetFiles(
 							WorkingFolder,
@@ -181,7 +187,9 @@ namespace Vault2Git.Lib
 						//get vault version info
 						var info = vaultVersions[version.Key];
 						//commit
+						Console.Write($"Starting git commit...");
 						ticks += gitCommit(info.Login, info.TrxId, version.Key, GitDomainName, buildCommitMessage(vaultRepoPath, version.Key, info), info.TimeStamp);
+						Console.WriteLine($" done!");
 						if (null != Progress)
 							if (Progress(version.Key, keyValuePairs.Count, ticks))
 								return true;
@@ -197,6 +205,9 @@ namespace Vault2Git.Lib
 						//check if limit is reached
 						if (counter >= limitCount)
 							break;
+						completedStepCount++;
+						versionProcessingTime.Stop();
+						Tools.WriteProgressInfo(string.Empty, versionProcessingTime.Elapsed, completedStepCount, keyValuePairs.Count, overallProcessingTime.Elapsed);
 					}
 					ticks = vaultFinalize(vaultRepoPath);
 				}
@@ -303,7 +314,7 @@ namespace Vault2Git.Lib
 		private int vaultPopulateInfo(string repoPath, IDictionary<long, VaultVersionInfo> info)
 		{
 			var ticks = Environment.TickCount;
-
+			Console.Write($"Fetching history from vault from {RevisionStartDate} to {RevisionEndDate}... ");
 			var historyItems = ServerOperations.ProcessCommandVersionHistory(repoPath,
 				0,
 				VaultDateTime.Parse(RevisionStartDate),
@@ -318,6 +329,7 @@ namespace Vault2Git.Lib
 					Login = i.UserLogin,
 					TimeStamp = i.TxDate.GetDateTime()
 				});
+			Console.WriteLine($"done! Fetched {historyItems.Length} versions.");
 			return Environment.TickCount - ticks;
 		}
 
@@ -643,6 +655,7 @@ namespace Vault2Git.Lib
 
 		private int vaultLogin()
 		{
+			Console.Write($"Starting Vault login to {VaultServer} for repository {VaultRepository}... ");
 			var ticks = Environment.TickCount;
 			if (ServerOperations.client.ClientInstance.ConnectionStateType == ConnectionStateType.Unconnected)
 			{
@@ -659,6 +672,7 @@ namespace Vault2Git.Lib
 				ServerOperations.client.Verbose = true;
 				_loginDone = true;
 			}
+			Console.WriteLine($"done!");
 			return Environment.TickCount - ticks;
 		}
 

@@ -40,5 +40,23 @@ namespace Vault2Git.Lib
 				return null;
 			}
 		}
+
+		public static void WriteProgressInfo(string message, TimeSpan processingTime, int completedVersion, int totalVersion,
+			TimeSpan totalProcessingTime)
+		{
+			try
+			{
+				var percentage = Math.Round((decimal)(completedVersion / totalVersion) * 100, 0);
+				var averageProcessingTime = TimeSpan.FromSeconds((int)(totalProcessingTime.TotalSeconds / completedVersion));
+				var timeLeft = TimeSpan.FromSeconds(averageProcessingTime.TotalSeconds*(totalVersion - completedVersion));
+				var etc = DateTime.Now + timeLeft;
+				Console.WriteLine(
+					$"[{DateTime.Now.ToLocalTime()}] - Processed version {completedVersion} of {totalVersion} ({percentage}%) in {processingTime}. ETC: {etc} (in {timeLeft} at {averageProcessingTime}/version)");
+			}
+			catch (Exception e)
+			{
+				Console.Error.WriteLine($"Unable to dump progress information: {e.Message}");
+			}
+		}
 	}
 }
