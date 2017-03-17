@@ -27,6 +27,7 @@ namespace Vault2Git.Lib
 		public string WorkingFolder;
 
 		public string VaultServer;
+        public bool VaultUseSSL;
 		public string VaultUser;
 		public string VaultPassword;
 		public string VaultRepository;
@@ -342,7 +343,7 @@ namespace Vault2Git.Lib
 			vaultLogin();
 
 			// Search for all labels recursively
-			string repositoryFolderPath = "$/HEAD";
+			string repositoryFolderPath = "$";
 
 			long objId = RepositoryUtil.FindVaultTreeObjectAtReposOrLocalPath(repositoryFolderPath).ID;
 			string qryToken;
@@ -372,7 +373,10 @@ namespace Vault2Git.Lib
 				0,
 				(int)rowsRetRecur,
 				out labelItems);
-			try
+
+            if (labelItems == null)
+                labelItems = new VaultLabelItemX[0];
+            try
 			{
 				int ticks = 0;
 
@@ -414,7 +418,7 @@ namespace Vault2Git.Lib
 					OverrideEOL = VaultEOL.None,
 					//remove working copy does not work -- bug http://support.sourcegear.com/viewtopic.php?f=5&t=11145
 					PerformDeletions = PerformDeletionsType.RemoveWorkingCopy,
-					SetFileTime = SetFileTimeType.Current,
+					SetFileTime = SetFileTimeType.Modification,
 					Recursive = true
 				});
 
@@ -657,13 +661,20 @@ namespace Vault2Git.Lib
 		{
 			Console.Write($"Starting Vault login to {VaultServer} for repository {VaultRepository}... ");
 			var ticks = Environment.TickCount;
+            if (ServerOperations.client.ClientInstance == null)
+            {
+                ServerOperations.client.CreateClientInstance(false);
+            }
 			if (ServerOperations.client.ClientInstance.ConnectionStateType == ConnectionStateType.Unconnected)
 			{
 				ServerOperations.client.ClientInstance.WorkingFolderOptions.StoreDataInWorkingFolders = false;
 				ServerOperations.client.ClientInstance.Connection.SetTimeouts(Convert.ToInt32(TimeSpan.FromMinutes(10).TotalSeconds)
 					, Convert.ToInt32(TimeSpan.FromMinutes(10).TotalSeconds));
-				ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
-				ServerOperations.client.LoginOptions.User = this.VaultUser;
+                if (VaultUseSSL == true)
+                    ServerOperations.client.LoginOptions.URL = string.Format("https://{0}/VaultService", this.VaultServer);
+                else
+                    ServerOperations.client.LoginOptions.URL = string.Format("http://{0}/VaultService", this.VaultServer);
+                ServerOperations.client.LoginOptions.User = this.VaultUser;
 				ServerOperations.client.LoginOptions.Password = this.VaultPassword;
 				ServerOperations.client.LoginOptions.Repository = this.VaultRepository;
 				ServerOperations.Login();

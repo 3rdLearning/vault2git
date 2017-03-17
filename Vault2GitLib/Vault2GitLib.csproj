@@ -55,8 +55,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DragnetLib">
-      <HintPath>libs\VaultClientAPI_5_1_2_19281\DragnetLib.dll</HintPath>
+    <Reference Include="DragnetLib, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=41d503987db6c6d9">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_9_1_0_584\DragnetLib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
@@ -70,20 +71,25 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="VaultClientIntegrationLib">
-      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultClientIntegrationLib.dll</HintPath>
+    <Reference Include="VaultClientIntegrationLib, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=500623c275bd78a9, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_9_1_0_584\VaultClientIntegrationLib.dll</HintPath>
     </Reference>
-    <Reference Include="VaultClientNetLib">
-      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultClientNetLib.dll</HintPath>
+    <Reference Include="VaultClientNetLib, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=e372e94840f8a4d3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_9_1_0_584\VaultClientNetLib.dll</HintPath>
     </Reference>
-    <Reference Include="VaultClientOperationsLib">
-      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultClientOperationsLib.dll</HintPath>
+    <Reference Include="VaultClientOperationsLib, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=e372e94840f8a4d3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_9_1_0_584\VaultClientOperationsLib.dll</HintPath>
     </Reference>
-    <Reference Include="VaultLib">
-      <HintPath>libs\VaultClientAPI_5_1_2_19281\VaultLib.dll</HintPath>
+    <Reference Include="VaultLib, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=a74d7badb9387c36">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_9_1_0_584\VaultLib.dll</HintPath>
     </Reference>
-    <Reference Include="VCDiff">
-      <HintPath>libs\VaultClientAPI_5_1_2_19281\VCDiff.dll</HintPath>
+    <Reference Include="VCDiff, Version=5.1.2.19281, Culture=neutral, PublicKeyToken=4f75799f06837886">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>libs\VaultClientAPI_9_1_0_584\VCDiff.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
