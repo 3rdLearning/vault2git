@@ -509,10 +509,17 @@ namespace Vault2Git.Lib
 				if (!msgs.Any())
 					return ticks;
 			}
-			ticks += runGitCommand(
+
+            Dictionary<string, string> env = new Dictionary<string, string>();
+            env.Add("GIT_COMMITTER_DATE", commitTimeStamp.ToString("yyyy-MM-ddTHH:mm:ss"));
+            env.Add("GIT_COMMITTER_NAME", vaultLogin);
+            env.Add("GIT_COMMITTER_EMAIL", string.Format("{0}@{1}", vaultLogin, gitDomainName));
+
+            ticks += runGitCommand(
 				string.Format(_gitCommitCmd, vaultLogin, gitDomainName, string.Format("{0:s}", commitTimeStamp)),
 				vaultCommitMessage,
-				out msgs
+				out msgs, 
+                env
 				);
 
 			// Mapping Vault Transaction ID to Git Commit SHA-1 Hash
