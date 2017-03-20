@@ -56,10 +56,10 @@ namespace Vault2Git.Lib
 		private const string _gitLastCommitInfoCmd = "log -1 {0}";
 		private const string _gitAllCommitInfoCmd = "log {0}";
         private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{1}>"" -F -";
-        //private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{0}@{1}>"" -F -";
         private const string _gitCheckoutCmd = "checkout --quiet --force {0}";
 		private const string _gitBranchCmd = "branch";
 		private const string _gitAddTagCmd = @"tag {0} {1} -a -m ""{2}""";
+        private const string _gitInitCmd = "init";
 
 		//private vars
 		/// <summary>
@@ -109,12 +109,20 @@ namespace Vault2Git.Lib
 			var versionProcessingTime = new Stopwatch();
 			var overallProcessingTime = new Stopwatch();
 			int ticks = 0;
-			//get git current branch
-			string gitCurrentBranch;
-			ticks += this.gitCurrentBranch(out gitCurrentBranch);
 
             //load git authors
-            Tools.ParseAuthorsFile(AuthorMapPath);
+            Tools.ParseMapFile(AuthorMapPath);
+
+            //create git repo if doesn't exist
+            if (!File.Exists(WorkingFolder + ".git/config"))
+            {
+                ticks += gitCreateRepo();
+            }            
+
+            //get git current branch
+            string gitCurrentBranch;
+			ticks += this.gitCurrentBranch(out gitCurrentBranch);
+
 
 			//reorder target branches to start from current (to avoid checkouts)
 			var targetList =
@@ -322,13 +330,13 @@ namespace Vault2Git.Lib
 		{
 			var ticks = Environment.TickCount;
 			Console.Write($"Fetching history from vault from {RevisionStartDate} to {RevisionEndDate}... ");
-			var historyItems = ServerOperations.ProcessCommandVersionHistory(repoPath,
+			VaultTxHistoryItem[] historyItems = ServerOperations.ProcessCommandVersionHistory(repoPath,
 				0,
 				VaultDateTime.Parse(RevisionStartDate),
 				VaultDateTime.Parse(RevisionEndDate),
 				0);
 
-			foreach (var i in historyItems)
+			foreach (VaultTxHistoryItem i in historyItems)
 				info.Add(i.Version, new VaultVersionInfo()
 				{
 					TrxId = i.TxID,
@@ -496,6 +504,7 @@ namespace Vault2Git.Lib
 			return unSetVaultWorkingFolder(vaultRepoPath);
 		}
 
+        
 		private int gitCommit(string vaultLogin, long vaultTrxid, long vaultVersion, string gitDomainName, string vaultCommitMessage,
 			DateTime commitTimeStamp)
 		{
@@ -554,7 +563,18 @@ namespace Vault2Git.Lib
 			return ticks;
 		}
 
-		private int gitCurrentBranch(out string currentBranch)
+        private int gitCreateRepo()
+        {
+            string[] msgs;
+            var ticks = runGitCommand(_gitInitCmd, string.Empty, out msgs);
+            if (!msgs[0].StartsWith("Initialized empty Git repository"))
+            {
+                throw new InvalidOperationException("The local git repository doesn't exist and can't be created.");
+            }
+            return ticks;
+        }
+
+        private int gitCurrentBranch(out string currentBranch)
 		{
 			string[] msgs;
 			var ticks = runGitCommand(_gitBranchCmd, string.Empty, out msgs);

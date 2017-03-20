@@ -12,6 +12,7 @@ namespace Vault2Git.Lib
 	public static class Tools
 	{
         static Dictionary<string, string> authors = new Dictionary<string, string>();
+        static Dictionary<string, string> branches = new Dictionary<string, string>();
 
         public static void SaveMapping<TKey, TValue>(IDictionary<TKey, TValue> mappingDictionary, string fileName)
 		{
@@ -62,7 +63,7 @@ namespace Vault2Git.Lib
 			}
 		}
 
-        public static void ParseAuthorsFile(string path)
+        public static void ParseMapFile(string path)
         {
 
             if (File.Exists(path))
@@ -79,6 +80,14 @@ namespace Vault2Git.Lib
 
                     authors.Add(vaultname.ToLower(), gitname);
                 }
+
+                foreach (XmlElement element in xml.GetElementsByTagName("branch"))
+                {
+                    string vaultname = element.Attributes["vaultname"].Value;
+                    string gitname = element.Attributes["name"].Value;
+
+                    branches.Add(vaultname.ToLower(), gitname);
+                }
             }
         }
 
@@ -86,6 +95,12 @@ namespace Vault2Git.Lib
         {
             vault_user = vault_user.ToLower();
             return authors.ContainsKey(vault_user) ? authors[vault_user] : null;
+        }
+
+        public static string GetBranchMapping(string branch_name)
+        {
+            branch_name = branch_name.ToLower();
+            return branches.ContainsKey(branch_name) ? branches[branch_name] : branch_name;
         }
     }
 }
