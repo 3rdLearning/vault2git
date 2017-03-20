@@ -130,19 +130,20 @@ namespace Vault2Git.CLI
 				Console.Error.WriteLine($"Configuration MappingSaveLocation is not defined into application' settings. Please set a valid value.");
 			}
 
-			var processor = new Vault2Git.Lib.Processor()
-			{
-				WorkingFolder = ConfigurationManager.AppSettings["Convertor.WorkingFolder"],
-				GitCmd = ConfigurationManager.AppSettings["Convertor.GitCmd"],
-				GitDomainName = ConfigurationManager.AppSettings["Git.DomainName"],
-				VaultServer = ConfigurationManager.AppSettings["Vault.Server"],
+            var processor = new Vault2Git.Lib.Processor()
+            {
+                WorkingFolder = ConfigurationManager.AppSettings["Convertor.WorkingFolder"],
+                GitCmd = ConfigurationManager.AppSettings["Convertor.GitCmd"],
+                GitDomainName = ConfigurationManager.AppSettings["Git.DomainName"],
+                VaultServer = ConfigurationManager.AppSettings["Vault.Server"],
                 VaultUseSSL = (ConfigurationManager.AppSettings["Vault.UseSSL"].ToLower() == "true"),
                 VaultRepository = ConfigurationManager.AppSettings["Vault.Repo"],
-				VaultUser = ConfigurationManager.AppSettings["Vault.User"],
-				VaultPassword = ConfigurationManager.AppSettings["Vault.Password"],
-				RevisionStartDate = ConfigurationManager.AppSettings["RevisionStartDate"] ?? "2005-01-01",
-				RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2020-12-31",
-				MappingSaveLocation = ConfigurationManager.AppSettings["MappingSaveLocation"],
+                VaultUser = ConfigurationManager.AppSettings["Vault.User"],
+                VaultPassword = ConfigurationManager.AppSettings["Vault.Password"],
+                RevisionStartDate = ConfigurationManager.AppSettings["RevisionStartDate"] ?? "2005-01-01",
+                RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2020-12-31",
+                MappingSaveLocation = ConfigurationManager.AppSettings["MappingSaveLocation"],
+                AuthorMapPath = ConfigurationManager.AppSettings["AuthorMap"] ?? "c:\temp\authors.txt",
 				Progress = ShowProgress,
 				SkipEmptyCommits = param.SkipEmptyCommits
 			};

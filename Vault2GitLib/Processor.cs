@@ -36,6 +36,8 @@ namespace Vault2Git.Lib
 
 		public int GitGCInterval = 200;
 
+        public string AuthorMapPath { get; set; }
+
 		// Stores whether the login has been already accomplished or not. Prevent an issue with our current Vault version (v5)
 		private bool _loginDone = false;
 
@@ -53,8 +55,9 @@ namespace Vault2Git.Lib
 		private const string _gitStatusCmd = "status --porcelain";
 		private const string _gitLastCommitInfoCmd = "log -1 {0}";
 		private const string _gitAllCommitInfoCmd = "log {0}";
-		private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{0}@{1}>"" -F -";
-		private const string _gitCheckoutCmd = "checkout --quiet --force {0}";
+        private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{1}>"" -F -";
+        //private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{0}@{1}>"" -F -";
+        private const string _gitCheckoutCmd = "checkout --quiet --force {0}";
 		private const string _gitBranchCmd = "branch";
 		private const string _gitAddTagCmd = @"tag {0} {1} -a -m ""{2}""";
 
@@ -109,6 +112,9 @@ namespace Vault2Git.Lib
 			//get git current branch
 			string gitCurrentBranch;
 			ticks += this.gitCurrentBranch(out gitCurrentBranch);
+
+            //load git authors
+            Tools.ParseAuthorsFile(AuthorMapPath);
 
 			//reorder target branches to start from current (to avoid checkouts)
 			var targetList =
@@ -494,7 +500,11 @@ namespace Vault2Git.Lib
 			DateTime commitTimeStamp)
 		{
 			string gitCurrentBranch;
-			this.gitCurrentBranch(out gitCurrentBranch);
+            string gitName;
+            string gitEmail;
+            string gitAuthor;
+
+            this.gitCurrentBranch(out gitCurrentBranch);
 
 			string[] msgs;
 			var ticks = runGitCommand(_gitAddCmd, string.Empty, out msgs);
@@ -510,13 +520,25 @@ namespace Vault2Git.Lib
 					return ticks;
 			}
 
+            gitAuthor = Tools.GetGitAuthor(vaultLogin);
+            if (gitAuthor != null)
+            {
+                gitName = gitAuthor.Split(':')[0];
+                gitEmail = gitAuthor.Split(':')[1];
+            }
+            else
+            {
+                gitName = vaultLogin;
+                gitEmail = vaultLogin + '@' + gitDomainName;
+            }
+
             Dictionary<string, string> env = new Dictionary<string, string>();
             env.Add("GIT_COMMITTER_DATE", commitTimeStamp.ToString("yyyy-MM-ddTHH:mm:ss"));
-            env.Add("GIT_COMMITTER_NAME", vaultLogin);
-            env.Add("GIT_COMMITTER_EMAIL", string.Format("{0}@{1}", vaultLogin, gitDomainName));
+            env.Add("GIT_COMMITTER_NAME", gitName);
+            env.Add("GIT_COMMITTER_EMAIL", gitEmail);
 
             ticks += runGitCommand(
-				string.Format(_gitCommitCmd, vaultLogin, gitDomainName, string.Format("{0:s}", commitTimeStamp)),
+				string.Format(_gitCommitCmd, gitName, gitEmail, string.Format("{0:s}", commitTimeStamp)),
 				vaultCommitMessage,
 				out msgs, 
                 env
@@ -756,7 +778,9 @@ namespace Vault2Git.Lib
 				commitInfos.Add(long.Parse(split[1].Split('@')[1]), comitId);
 			}
 			Tools.SaveMapping(commitInfos, MappingSaveLocation);
+
 			return commitInfos;
 		}
 	}
+
 }

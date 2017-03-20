@@ -5,12 +5,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using System.Xml;
 
 namespace Vault2Git.Lib
 {
 	public static class Tools
 	{
-		public static void SaveMapping<TKey, TValue>(IDictionary<TKey, TValue> mappingDictionary, string fileName)
+        static Dictionary<string, string> authors = new Dictionary<string, string>();
+
+        public static void SaveMapping<TKey, TValue>(IDictionary<TKey, TValue> mappingDictionary, string fileName)
 		{
 			Dictionary2Xml(mappingDictionary).Save(fileName);
 		}
@@ -46,7 +49,7 @@ namespace Vault2Git.Lib
 		{
 			try
 			{
-				var percentage = Math.Round(Convert.ToDouble(completedVersion / totalVersion), 1);
+				var percentage = Math.Round(100 * Convert.ToDouble(completedVersion) / Convert.ToDouble(totalVersion),1);
 				var averageProcessingTime = TimeSpan.FromSeconds((int)(totalProcessingTime.TotalSeconds / completedVersion));
 				var timeLeft = TimeSpan.FromSeconds(averageProcessingTime.TotalSeconds * (totalVersion - completedVersion));
 				var etc = DateTime.Now + timeLeft;
@@ -58,5 +61,31 @@ namespace Vault2Git.Lib
 				Console.Error.WriteLine($"Unable to dump progress information: {e.Message}");
 			}
 		}
-	}
+
+        public static void ParseAuthorsFile(string path)
+        {
+
+            if (File.Exists(path))
+            {
+                XmlDocument xml = new XmlDocument();
+                xml.Load(path);
+
+                foreach (XmlElement element in xml.GetElementsByTagName("author"))
+                {
+                    string vaultname = element.Attributes["vaultname"].Value;
+                    string gitname = element.Attributes["name"].Value
+                        + ":"
+                        + element.Attributes["email"].Value;
+
+                    authors.Add(vaultname.ToLower(), gitname);
+                }
+            }
+        }
+
+        public static string GetGitAuthor(string vault_user)
+        {
+            vault_user = vault_user.ToLower();
+            return authors.ContainsKey(vault_user) ? authors[vault_user] : null;
+        }
+    }
 }
