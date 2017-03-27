@@ -18,7 +18,7 @@ namespace Vault2Git.CLI
 			public bool UseCapsLock { get; protected set; }
 			public bool SkipEmptyCommits { get; protected set; }
 			public bool IgnoreLabels { get; protected set; }
-			public string Branches;
+            public List<string> Branches;
 			public IEnumerable<string> Errors;
 
 			protected Params()
@@ -28,12 +28,12 @@ namespace Vault2Git.CLI
 			private const string _limitParam = "--limit=";
 			private const string _branchParam = "--branch=";
 
-			public static Params Parse(string[] args, string gitBranches)
+			public static Params Parse(string[] args, List<string> gitBranches)
 			{
 				var errors = new List<string>();
-                string branches = string.Empty;
-
-				var p = new Params();
+                var branches = new List<string>();
+                
+                var p = new Params();
 				foreach (var o in args)
 				{
 					if (o.Equals("--console-output"))
@@ -51,7 +51,7 @@ namespace Vault2Git.CLI
 						errors.Add("   --help                  This screen");
 						errors.Add("   --console-output        Use console output (default=no output)");
 						errors.Add("   --caps-lock             Use caps lock to stop at the end of the cycle with proper finalizers (default=no caps-lock)");
-						errors.Add("   --branch=<branch>       Process branches in folder specified. Default=all branches from folder in config");
+						errors.Add("   --branch=<branch>       Process branches specified. Default=all branches specified in config");
 						errors.Add("   --limit=<n>             Max number of versions to take from Vault for each branch");
 						errors.Add("   --skip-empty-commits    Do not create empty commits in Git");
 						errors.Add("   --ignore-labels         Do not create Git tags from Vault labels");
@@ -68,16 +68,17 @@ namespace Vault2Git.CLI
 					else if (o.StartsWith(_branchParam))
 					{
 						var b = o.Substring(_branchParam.Length);
-                        if (gitBranches.Equals(b))
-                            branches = b;
+                        if (gitBranches.Contains(b))
+                            branches.Add(b);
                         else
+
                             errors.Add(string.Format("Unknown branch {0}. Use one specified in .config", b));
 					}
 					else
                         errors.Add(string.Format("Unknown option {0}", o));
 				}
-                p.Branches = branches == string.Empty
-					? gitBranches
+                p.Branches = 0 == branches.Count()
+                    ? gitBranches
 					: branches;
 				p.Errors = errors;
 				return p;
@@ -99,10 +100,11 @@ namespace Vault2Git.CLI
 			System.Console.InputEncoding = System.Text.Encoding.UTF8;
 
             //get configuration for branches
-            string path = ConfigurationManager.AppSettings["Converter.BasePath"];
-
+            string paths = ConfigurationManager.AppSettings["Convertor.Paths"];
+            List<string> branches = paths.Split(';').ToList();
+            
             //parse params
-            var param = Params.Parse(args, path);
+            var param = Params.Parse(args, branches);
 
 			//get count from param
 			if (param.Errors.Count() > 0)

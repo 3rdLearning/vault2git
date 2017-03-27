@@ -99,7 +99,7 @@ namespace Vault2Git.Lib
 
         public static string GetBranchMapping(string branch_name)
         {
-            branch_name = branch_name.ToLower();
+            branch_name = branch_name.ToLower().Replace(" ", string.Empty);
             return branches.ContainsKey(branch_name) ? branches[branch_name] : branch_name;
         }
     }
