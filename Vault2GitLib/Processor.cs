@@ -54,7 +54,7 @@ namespace Vault2Git.Lib
 		private const string _gitAddCmd = "add --all .";
 		private const string _gitStatusCmd = "status --porcelain";
 		private const string _gitLastCommitInfoCmd = "log -1 --all --branches";
-		private const string _gitAllCommitInfoCmd = "log --all --branches";
+		private const string _gitAllCommitInfoCmd = "log --all --branches --parents";
         private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{1}>"" -F -";
         private const string _gitCheckoutCmd = "checkout --quiet --force {0}";
         private const string _gitCreateBranch = "checkout -b {0} {1}";
@@ -260,13 +260,72 @@ namespace Vault2Git.Lib
 			return false;
 		}
 
+        public bool buildGrafts()
+        {
+            IDictionary<string, IDictionary<string, string>> map = getMappingWithTxIdFromLog();
 
-		/// <summary>
-		/// removes Source control refs from sln files
-		/// </summary>
-		/// <param name="filePath">path to sln file</param>
-		/// <returns></returns>
-		private static int removeSCCFromSln(string filePath)
+            var origins = map.Where(l => l.Value.Keys.Contains("origin"));
+
+            if (_txidMappings == null || _txidMappings.Count == 0)
+            //Reload from file
+            {
+                _txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key.ToLower(), kp => kp.Value) ?? new Dictionary<string, string>();
+            }
+
+            //Process _txIdMappings in reverse order and keep track of latest version inside of loop
+
+            IDictionary<string, string> branches = new Dictionary<string, string>();
+            IEnumerable<KeyValuePair<string, string>> transactions = _txidMappings.Reverse();
+
+            string branch, version;
+            List<Tuple<string, string, string>> graft = new List<Tuple<string, string, string>>();
+            foreach(KeyValuePair<string, string> t in transactions)
+            {
+                branch = Tools.GetBranchMapping(t.Key.Split(':').First());
+                version = t.Key.Split(':').Last();
+                if (branches.ContainsKey(branch))
+                {
+                    branches[branch] = version;
+                }
+                else
+                {
+                    branches.Add(branch, version);
+                }
+
+                if (origins.Any(o => o.Key == t.Key))
+                {
+                    var origin = origins.Where(o => o.Key == t.Key).FirstOrDefault();
+                    var sourceBranch = Tools.GetBranchMapping(origin.Value["origin"].Split('/').Last());
+                    if (branches.ContainsKey(sourceBranch))
+                    {
+                        var a = string.Format("{0}:{1}", sourceBranch, branches[sourceBranch]);
+                        //var v = branches[branch];
+                        //var a = transactions.Where(x => x.Key.Equals(string.Format("{0}:{1}", branch, branches[branch]))).FirstOrDefault().Value;
+                        graft.Add(Tuple.Create<string, string, string>(origin.Value["commit"], origin.Value["parent"], _txidMappings[a]));
+                    }
+                    
+                }
+            }
+
+            if (graft.Any())
+            {
+                using (StreamWriter writetext = new StreamWriter(WorkingFolder + ".git\\info\\grafts"))
+                {
+                    foreach (Tuple<string, string, string> g in graft)
+                    {
+                        writetext.WriteLine(string.Format("{0} {1} {2}", g.Item1, g.Item2, g.Item3));
+                    }
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// removes Source control refs from sln files
+        /// </summary>
+        /// <param name="filePath">path to sln file</param>
+        /// <returns></returns>
+        private static int removeSCCFromSln(string filePath)
 		{
 			var ticks = Environment.TickCount;
 			var lines = File.ReadAllLines(filePath).ToList();
@@ -637,8 +696,15 @@ namespace Vault2Git.Lib
                 throw new InvalidOperationException("The local git repository doesn't exist and can't be created.");
             }
 
+            //add .gitignore and .gitattributes
+            
+            Tools.CopyFile("Resources\\.gitignore", WorkingFolder + ".gitignore");
+            Tools.CopyFile("Resources\\.gitattributes", WorkingFolder + ".gitattributes");
+            ticks += runGitCommand(_gitAddCmd, string.Empty, out msgs);
+
             Dictionary<string, string> env = new Dictionary<string, string>();
             env.Add("GIT_COMMITTER_DATE", DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"));
+
 
             ticks += runGitCommand(string.Format(_gitInitInitalCommitCmd, DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"), VaultTag), string.Empty, out msgs, env);
 
@@ -649,6 +715,9 @@ namespace Vault2Git.Lib
                 VaultVersionInfo info = new VaultVersionInfo { Branch = "Master", TxId = 0 };
                 AddMapping(info, gitCommitId);
             }
+
+            
+
 
             return ticks;
         }
@@ -677,6 +746,7 @@ namespace Vault2Git.Lib
             string[] msgs;
             int ticks = runGitCommand(string.Format(_gitCreateBranch, info.Branch, gitStartPoint), string.Empty, out msgs);
             currentBranch = info.Branch;
+
             return ticks;
 
         }
@@ -972,8 +1042,9 @@ namespace Vault2Git.Lib
 			var commitInfos = new Dictionary<string, string>();
 			for (var i = 0; i < filtered.Length - 1; i += 2)
 			{
-				var comitId = filtered[i].Replace("commit", string.Empty).Trim();
-				var split = filtered[i + 1].Replace(VaultTag, string.Empty).Trim().Split('@').LastOrDefault().Split('/');
+                //var comitId = filtered[i].Replace("commit", string.Empty).Trim();
+                var comitId = filtered[i].Split(' ')[1];
+                var split = filtered[i + 1].Replace(VaultTag, string.Empty).Trim().Split('@').LastOrDefault().Split('/');
 				if (split.Length != 3)
 					continue;
 				commitInfos.Add(split[0] + ":" + split[2], comitId);
@@ -982,6 +1053,37 @@ namespace Vault2Git.Lib
 
 			return commitInfos;
 		}
-	}
 
+        private IDictionary<string, IDictionary<string, string>> getMappingWithTxIdFromLog()
+        {
+            string[] msgs;
+            
+
+            getGitLogs(out msgs);
+            var filtered = msgs.Where(l => l.Contains(VaultTag) || l.StartsWith("commit ") || l.Contains("Merge Branches : Origin=$")).ToArray();
+
+            var commitInfos = new Dictionary<string, IDictionary<string, string>>();
+
+            for (var i = 0; i < filtered.Length - 1; i++)
+            {
+                var data = new Dictionary<string, string>();
+
+                data.Add("commit", filtered[i].Replace("commit", string.Empty).Trim().Split(' ').FirstOrDefault());
+                data.Add("parent", filtered[i].Replace("commit", string.Empty).Trim().Split(' ').ElementAtOrDefault(1));
+                while (i < filtered.Length & !filtered[i+1].Contains(VaultTag)){
+                    i++;
+                    if (!data.ContainsKey("origin"))
+                        data.Add("origin",filtered[i].Substring(filtered[i].IndexOf('$')));
+                }
+                i++;
+                var split = filtered[i].Replace(VaultTag, string.Empty).Trim().Split('@').LastOrDefault().Split('/');
+                if (split.Length != 3)
+                    continue;
+                data.Add("txid", split[1]);
+                commitInfos.Add(split[0] + ":" + split[2], data);
+            }
+
+            return commitInfos;
+        }
+	}
 }

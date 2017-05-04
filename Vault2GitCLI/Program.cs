@@ -16,6 +16,7 @@ namespace Vault2Git.CLI
 			public int Limit { get; protected set; }
 			public bool UseConsole { get; protected set; }
 			public bool UseCapsLock { get; protected set; }
+            public bool BuildGraft { get; protected set; }
 			public bool SkipEmptyCommits { get; protected set; }
 			public bool IgnoreLabels { get; protected set; }
             public List<string> Branches;
@@ -38,8 +39,10 @@ namespace Vault2Git.CLI
 				{
 					if (o.Equals("--console-output"))
 						p.UseConsole = true;
-					else if (o.Equals("--caps-lock"))
-						p.UseCapsLock = true;
+                    else if (o.Equals("--caps-lock"))
+                        p.UseCapsLock = true;
+                    else if (o.Equals("--build-graft"))
+						p.BuildGraft = true;
 					else if (o.Equals("--skip-empty-commits"))
 						p.SkipEmptyCommits = true;
 					else if (o.Equals("--ignore-labels"))
@@ -49,6 +52,7 @@ namespace Vault2Git.CLI
 						errors.Add("Usage: vault2git [options]");
 						errors.Add("options:");
 						errors.Add("   --help                  This screen");
+                        errors.Add("   --build-graft           Build graft file from log");
 						errors.Add("   --console-output        Use console output (default=no output)");
 						errors.Add("   --caps-lock             Use caps lock to stop at the end of the cycle with proper finalizers (default=no caps-lock)");
 						errors.Add("   --branch=<branch>       Process branches specified. Default=all branches specified in config");
@@ -88,6 +92,7 @@ namespace Vault2Git.CLI
 		private static bool _useCapsLock = false;
 		private static bool _useConsole = false;
 		private static bool _ignoreLabels = false;
+        private static bool _buildGraft = false;
 
 
 		/// <summary>
@@ -119,7 +124,8 @@ namespace Vault2Git.CLI
 			_useConsole = param.UseConsole;
 			_useCapsLock = param.UseCapsLock;
 			_ignoreLabels = param.IgnoreLabels;
-			
+            _buildGraft = param.BuildGraft;
+
 			if (string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["MappingSaveLocation"]))
 			{
 				Console.Error.WriteLine($"Configuration MappingSaveLocation is not defined into application' settings. Please set a valid value.");
@@ -143,16 +149,21 @@ namespace Vault2Git.CLI
 				SkipEmptyCommits = param.SkipEmptyCommits
 			};
 
+            if (_buildGraft)
+            {
+                processor.buildGrafts();
+            }
+            else
+            {
+                processor.Pull
+                    (
+                        param.Branches
+                        , 0 == param.Limit ? 999999999 : param.Limit
+                    );
 
-			processor.Pull
-				(
-					param.Branches
-					, 0 == param.Limit ? 999999999 : param.Limit
-				);
-
-			if (!_ignoreLabels)
-				processor.CreateTagsFromLabels();
-
+                if (!_ignoreLabels)
+                    processor.CreateTagsFromLabels();
+            }
 #if DEBUG
 			Console.WriteLine("Press ENTER");
 			Console.ReadLine();

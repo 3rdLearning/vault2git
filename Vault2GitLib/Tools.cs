@@ -63,6 +63,12 @@ namespace Vault2Git.Lib
 			}
 		}
 
+        public static void CopyFile(string source, string dest)
+        {
+            if (File.Exists(source))
+                File.Copy(source, dest);
+        }
+
         public static void ParseMapFile(string path)
         {
 
