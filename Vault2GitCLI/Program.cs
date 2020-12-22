@@ -85,6 +85,7 @@ namespace Vault2Git.CLI
                     ? gitBranches
 					: branches;
 				p.Errors = errors;
+				p.BuildGraft = false;
 				return p;
 			}
 		}
@@ -103,11 +104,12 @@ namespace Vault2Git.CLI
 		{
 			Console.WriteLine("Vault2Git -- converting history from Vault repositories to Git");
 			System.Console.InputEncoding = System.Text.Encoding.UTF8;
+			
+			//get configuration for branches
+			string paths = ConfigurationManager.AppSettings["Convertor.Paths"];
+			List<string> branches = paths.TrimEnd(';').Split(';').ToList();
 
-            //get configuration for branches
-            string paths = ConfigurationManager.AppSettings["Convertor.Paths"];
-            List<string> branches = paths.Split(';').ToList();
-            
+
             //parse params
             var param = Params.Parse(args, branches);
 
@@ -145,13 +147,14 @@ namespace Vault2Git.CLI
                 RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2030-12-31",
                 MappingSaveLocation = ConfigurationManager.AppSettings["MappingSaveLocation"],
                 AuthorMapPath = ConfigurationManager.AppSettings["CustomMapPath"] ?? "c:\\temp\\mapfile.xml",
+				GitCommitMessageTempFile = ConfigurationManager.AppSettings["GitCommitMessageTempFile"] ?? "c:\\temp\\commitmessage.tmp",
 				Progress = ShowProgress,
 				SkipEmptyCommits = param.SkipEmptyCommits
 			};
 
             if (_buildGraft)
             {
-                processor.buildGrafts();
+                processor.BuildGrafts();
             }
             else
             {
@@ -159,6 +162,7 @@ namespace Vault2Git.CLI
                     (
                         param.Branches
                         , 0 == param.Limit ? 999999999 : param.Limit
+						, _ignoreLabels
                     );
 
                 if (!_ignoreLabels)

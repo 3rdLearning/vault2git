@@ -6,9 +6,26 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Xml;
+using System.Xml.Serialization;
 
 namespace Vault2Git.Lib
 {
+	public struct GitCommit
+    {
+		public GitCommitHash CommitHash;
+		public List<GitCommitHash> ParentCommitHash;
+		public string Comment;
+		public VaultVersionInfo VaultInfo;
+	}
+
+	public struct GitVaultMessageTag
+	{
+		public string VaultRepositoryPath;
+		public string Branch;
+		public string CommitHash;
+		public long TxId;
+	}
+
 	public static class Tools
 	{
         static Dictionary<string, string> authors = new Dictionary<string, string>();
@@ -19,19 +36,77 @@ namespace Vault2Git.Lib
 			Dictionary2Xml(mappingDictionary).Save(fileName);
 		}
 
+		public static void SaveMapping(List<VaultTx2GitTx> mappingDictionary, string fileName)
+		{
+			VaultTx2Git2Xml(mappingDictionary).Save(fileName);
+		}
+
+		public static XElement VaultTx2Git2Xml(List<VaultTx2GitTx> input)
+		{
+			//if (typeof(TValue) == typeof(VaultTx2GitTx))
+			return new XElement("TransactionMap", new XAttribute("MappingType", typeof(VaultTx2GitTx).FullName),
+				input.Select(kp => new XElement("entry", new XAttribute("TxId", kp.TxId), new XAttribute("Branch", kp.Branch), new XAttribute("GitHash", kp.GitHash.ToString())
+					)));
+			//else
+			//TValue[] arr = input.Values.ToArray();
+
+			////--return XElement.Parse(Encoding.ASCII.GetString(memoryStream.ToArray()));
+			//return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName),
+			//new XAttribute("valueType", typeof(TValue).FullName),
+			//arr.Select(kp =>
+			//{
+			//	using (var memoryStream = new MemoryStream())
+			//	{
+			//		using (TextWriter streamWriter = new StreamWriter(memoryStream))
+			//		{
+			//			var xmlSerializer = new XmlSerializer(typeof(TValue));
+			//			xmlSerializer.Serialize(streamWriter, kp);
+			//			return XElement.Parse(Encoding.ASCII.GetString(memoryStream.ToArray()));
+			//		}
+			//	}
+			//}));
+
+		}
+
 		public static XElement Dictionary2Xml<TKey, TValue>(IDictionary<TKey, TValue> input)
 		{
-			return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName),
-				new XAttribute("valueType", typeof(TValue).FullName),
-				input.Select(kp => new XElement("entry", new XAttribute("key", kp.Key), kp.Value)));
+			//if (typeof(TValue) == typeof(VaultTx2GitTx))
+				return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName),
+					new XAttribute("valueType", typeof(TValue).FullName),
+					input.Select(kp => new XElement("entry", new XAttribute("key", kp.Key), kp.Value)));
+			//else
+			//TValue[] arr = input.Values.ToArray();
+
+			////--return XElement.Parse(Encoding.ASCII.GetString(memoryStream.ToArray()));
+			//return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName),
+			//new XAttribute("valueType", typeof(TValue).FullName),
+			//arr.Select(kp =>
+			//{
+			//	using (var memoryStream = new MemoryStream())
+			//	{
+			//		using (TextWriter streamWriter = new StreamWriter(memoryStream))
+			//		{
+			//			var xmlSerializer = new XmlSerializer(typeof(TValue));
+			//			xmlSerializer.Serialize(streamWriter, kp);
+			//			return XElement.Parse(Encoding.ASCII.GetString(memoryStream.ToArray()));
+			//		}
+			//	}
+			//}));
+		
 		}
 
-		public static Dictionary<string, string> XElement2Dictionnary(XElement source)
+		public static bool SaveFile(string saveFileName, string contents)
+        {
+			File.WriteAllText(saveFileName, contents);
+			return true;
+        }
+
+		public static Dictionary<long, VaultTx2GitTx> XElement2Dictionnary(XElement source)
 		{
-			return source.Descendants("entry").ToDictionary(xe => xe.Attribute("key").Value, xe => xe.Value);
+			return source.Descendants("entry").ToDictionary(xe => long.Parse(xe.Attribute("TxId").Value), xe => VaultTx2GitTx.parse(xe));
 		}
 
-		public static Dictionary<string, string> ReadFromXml(string saveFileName)
+		public static Dictionary<long, VaultTx2GitTx> ReadFromXml(string saveFileName)
 		{
 			if (!File.Exists(saveFileName))
 				return null;
@@ -65,7 +140,7 @@ namespace Vault2Git.Lib
 
         public static void CopyFile(string source, string dest)
         {
-            if (File.Exists(source))
+            if (File.Exists(source) && !File.Exists(dest))
                 File.Copy(source, dest);
         }
 
