@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Vault2Git.Lib
 {
+
     public class GitCommitHash : IEquatable<GitCommitHash>
     {
         /// <summary>
@@ -108,7 +109,18 @@ namespace Vault2Git.Lib
         /// <returns>A string of 40 hex digits representing the SHA-1 hash</returns>
         public override string ToString()
         {
-            return (!Object.ReferenceEquals(_replacement, this)) ? _replacement.ToString() : ByteArrayToString(_CommitHash).ToLower();
+            return this.ToString(true);
+        }
+
+        /// <summary>
+        /// Returns the string of 40 hex digits representing the SHA-1 hash
+        /// </summary>
+        /// <remarks>If a replacement GitCommitHash has been added to the GitCommitHash, this method can retrieve the value from the replacement using the <paramref name="followReplacement"/> parameter</remarks>
+        /// <param name="followReplacement">follow replacement references</param>
+        /// <returns></returns>
+        private string ToString(bool followReplacement)
+        {
+            return (!Object.ReferenceEquals(_replacement, this) && followReplacement) ? _replacement.ToString(true) : ByteArrayToString(_CommitHash).ToLower();
         }
 
         /// <summary>
@@ -181,6 +193,9 @@ namespace Vault2Git.Lib
         /// <summary>
         /// Override of the object hash code calculation
         /// </summary>
+        /// <remarks>This uses the string value of the SHA-1 hash of the current node, or if a replacement 
+        /// exists, the replacement node. This allows two objects that have different roots that resolve to 
+        /// the same values in a replacement node be treated as potentially equal.</remarks>
         /// <returns>The calculated HashCode</returns>
         public override int GetHashCode()
         {
