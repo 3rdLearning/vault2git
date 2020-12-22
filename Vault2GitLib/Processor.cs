@@ -38,6 +38,8 @@ namespace Vault2Git.Lib
 
         public string AuthorMapPath { get; set; }
 
+		public string GitCommitMessageTempFile { get; set; }
+
 		// Stores whether the login has been already accomplished or not. Prevent an issue with our current Vault version (v5)
 		private bool _loginDone = false;
 
@@ -55,7 +57,7 @@ namespace Vault2Git.Lib
 		private const string _gitStatusCmd = "status --porcelain";
 		private const string _gitLastCommitInfoCmd = "log -1 --all --branches";
 		private const string _gitAllCommitInfoCmd = "log --all --branches --parents";
-        private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{1}>"" -F -";
+		private const string _gitCommitCmd = @"commit --allow-empty --all --date=""{2}"" --author=""{0} <{1}>"" -F {3}";
         private const string _gitCheckoutCmd = "checkout --quiet --force {0}";
         private const string _gitCreateBranch = "checkout -b {0} {1}";
         private const string _gitBranchCmd = "branch";
@@ -224,7 +226,8 @@ namespace Vault2Git.Lib
 					VaultVersionInfo info = vaultVersions[version.Key];
 					//commit
 					Console.Write($"Starting git commit...");
-					ticks += gitCommit(info, GitDomainName, buildCommitMessage(info));
+					buildCommitMessage(info);
+					ticks += gitCommit(info, GitDomainName);
 					Console.WriteLine($" done!");
 					if (null != Progress)
 						if (Progress(info.Version, keyValuePairs.Count, ticks))
@@ -627,7 +630,7 @@ namespace Vault2Git.Lib
 		}
 
 
-        private int gitCommit(VaultVersionInfo info, string gitDomainName, string vaultCommitMessage)
+        private int gitCommit(VaultVersionInfo info, string gitDomainName)
         {
             string gitCurrentBranch;
             string gitName;
@@ -671,8 +674,8 @@ namespace Vault2Git.Lib
             env.Add("GIT_COMMITTER_EMAIL", gitEmail);
 
             ticks += runGitCommand(
-				string.Format(_gitCommitCmd, gitName, gitEmail, string.Format("{0:s}", commitTimeStamp)),
-				vaultCommitMessage,
+				string.Format(_gitCommitCmd, gitName, gitEmail, string.Format("{0:s}", commitTimeStamp), GitCommitMessageTempFile),
+				string.Empty,
 				out msgs, 
                 env
 				);
@@ -801,7 +804,7 @@ namespace Vault2Git.Lib
             return ticks;
         }
 
-		private string buildCommitMessage(VaultVersionInfo info)
+		private bool buildCommitMessage(VaultVersionInfo info)
 		{
 			//parse path repo$RepoPath@branch/version/trx
 			var r = new StringBuilder(info.Comment);

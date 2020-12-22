@@ -142,7 +142,7 @@ namespace Vault2Git.CLI
                 VaultUser = ConfigurationManager.AppSettings["Vault.User"],
                 VaultPassword = ConfigurationManager.AppSettings["Vault.Password"],
                 RevisionStartDate = ConfigurationManager.AppSettings["RevisionStartDate"] ?? "2005-01-01",
-                RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2020-12-31",
+                RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2030-12-31",
                 MappingSaveLocation = ConfigurationManager.AppSettings["MappingSaveLocation"],
                 AuthorMapPath = ConfigurationManager.AppSettings["CustomMapPath"] ?? "c:\\temp\\mapfile.xml",
 				Progress = ShowProgress,
