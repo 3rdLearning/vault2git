@@ -93,7 +93,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GitCommit.cs" />
+    <Compile Include="GitCommitCollection.cs" />
     <Compile Include="GitCommitHash.cs" />
+    <Compile Include="Vault2GitState.cs" />
     <Compile Include="VaultTx2GitTx.cs" />
     <Compile Include="Processor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

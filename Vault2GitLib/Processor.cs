@@ -42,6 +42,8 @@ namespace Vault2Git.Lib
 
 		public string GitCommitMessageTempFile { get; set; }
 
+		public Vault2GitState ConversionState = new Vault2GitState();
+
 		// Stores whether the login has been already accomplished or not. Prevent an issue with our current Vault version (v5)
 		private bool _loginDone = false;
 
@@ -129,7 +131,7 @@ namespace Vault2Git.Lib
             //create git repo if doesn't exist, otherwise, rebuild vault to git mappings from log
             if (!File.Exists(WorkingFolder + "\\.git\\config"))
             {
-                ticks += gitCreateRepo();
+                ticks += gitCreateRepo(ConversionState);
             }
             else
             {
@@ -499,9 +501,10 @@ namespace Vault2Git.Lib
                         TxId = i.TxID,
                         Comment = i.Comment,
                         Login = i.UserLogin,
-                        TimeStamp = i.TxDate
-                    });
-            }
+                        TimeStamp = i.TxDate,
+						MergedFrom = (i.Comment.TrimStart().StartsWith("Merge Branches : Origin=$")) ? i.Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/')?.LastOrDefault() : string.Empty
+					});;
+			}
             
             return Environment.TickCount - ticks;
 		}
@@ -673,6 +676,25 @@ namespace Vault2Git.Lib
             return unSetVaultWorkingFolder(vaultRepoPaths);
 		}
 
+		private int gitInitialCommit()
+        {
+			string[] msgs;
+
+			Dictionary<string, string> env = new Dictionary<string, string>();
+			env.Add("GIT_COMMITTER_DATE", DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"));
+
+
+			int ticks = runGitCommand(string.Format(_gitInitInitalCommitCmd, DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"), VaultTag), string.Empty, out msgs, env);
+
+			if (msgs.Any())
+			{
+				string gitCommitId = msgs[0].Split(' ')[2];
+				gitCommitId = getFullHash(gitCommitId.Substring(0, gitCommitId.Length - 1));
+				AddMapping(new VaultVersionInfo { Branch = "Master", TxId = 0 }, gitCommitId);
+			}
+
+			return ticks;
+		}
 
         private int gitCommit(VaultVersionInfo info, string gitDomainName)
         {
@@ -734,38 +756,21 @@ namespace Vault2Git.Lib
 			return ticks;
 		}
 
-        private int gitCreateRepo()
+        private int gitCreateRepo(Vault2GitState state)
         {
-            string[] msgs;
 			if (!Directory.Exists(WorkingFolder))
 			{
 				Directory.CreateDirectory(WorkingFolder);
 			}
-            int ticks = runGitCommand(_gitInitCmd, string.Empty, out msgs);
-            if (!msgs[0].StartsWith("Initialized empty Git repository"))
-            {
-                throw new InvalidOperationException("The local git repository doesn't exist and can't be created.");
-            }
+
+			int ticks = gitInit();
 
             //add .gitignore and .gitattributes
-            
             Tools.CopyFile("Resources\\.gitignore", WorkingFolder + "\\.gitignore");
             Tools.CopyFile("Resources\\.gitattributes", WorkingFolder + "\\.gitattributes");
-            ticks += runGitCommand(_gitAddCmd, string.Empty, out msgs);
 
-            Dictionary<string, string> env = new Dictionary<string, string>();
-            env.Add("GIT_COMMITTER_DATE", DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"));
-
-
-            ticks += runGitCommand(string.Format(_gitInitInitalCommitCmd, DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"), VaultTag), string.Empty, out msgs, env);
-
-            if (msgs.Any())
-            {
-                string gitCommitId = msgs[0].Split(' ')[2];
-                gitCommitId = getFullHash(gitCommitId.Substring(0, gitCommitId.Length - 1));
-                VaultVersionInfo info = new VaultVersionInfo { Branch = "Master", TxId = 0 };
-                AddMapping(info, gitCommitId);
-            }
+			ticks += gitAddAll();
+			ticks += gitInitialCommit();
 
 			return ticks;
         }
@@ -823,6 +828,26 @@ namespace Vault2Git.Lib
 
             return ticks;
         }
+
+		private int gitInit()
+		{
+			string[] msgs;
+
+			int ticks = runGitCommand(_gitInitCmd, string.Empty, out msgs);
+			if (!msgs[0].StartsWith("Initialized empty Git repository"))
+			{
+				throw new InvalidOperationException("The local git repository doesn't exist and can't be created.");
+			}
+			return ticks;
+		}
+
+		private int gitAddAll()
+		{
+			string[] msgs;
+			int ticks = runGitCommand(_gitAddCmd, string.Empty, out msgs);
+
+			return ticks;
+		}
 
 		private int gitReplaceGraft(GitCommitHash gitCommitHash, List<GitCommitHash> gitParentCommitHash)
         {
@@ -1133,11 +1158,10 @@ namespace Vault2Git.Lib
 			var commitInfos = new List<VaultTx2GitTx>();
 			for (var i = 0; i < commits.Count(); i++)
 			{
-				//var comitId = filtered[i].Replace("commit", string.Empty).Trim();
-				var commitId = commits[i].CommitHash;
+				var commitHash = commits[i].CommitHash;
  
 				VaultTx tx = new VaultTx(commits[i].VaultInfo.TxId, commits[i].VaultInfo.Branch);
-				commitInfos.Add(new VaultTx2GitTx(commitId, tx));
+				commitInfos.Add(new VaultTx2GitTx(commitHash, tx));
 			}
 
 			Tools.SaveMapping(commitInfos, MappingSaveLocation);
@@ -1155,45 +1179,11 @@ namespace Vault2Git.Lib
 
 			List<GitCommit> Commits = GitLogFromXml(msgs);
 
-			var map = Commits.Where(l => l.Comment.Contains(VaultTag) || l.Comment.Contains("Merge Branches : Origin=$")).ToArray();
+			var map = Commits.Where(l => l.Comment.Contains(VaultTag)).ToArray();
 
 			for (var i = 0; i < map.Length; i++)
             {
 				getVaultVersionFromGitCommit(map[i], ref map[i].VaultInfo);
-				
-
-				if (map[i].Comment.TrimStart().StartsWith("Merge Branches : Origin=$"))
-                {
-					map[i].VaultInfo.MergedFrom = map[i].Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/').LastOrDefault();
-				}
-
-
-
-
-				//data.CommitHash = map[i].Replace("commit", string.Empty).Trim().Split(' ').FirstOrDefault();
-				//data.ParentCommitHash.Add(map[i].Replace("commit", string.Empty).Trim().Split(' ').ElementAtOrDefault(1));
-      //          while (i < map.Length & !map[i+1].Contains(VaultTag)){
-      //              i++;
-      //              if (!data.ContainsKey("origin"))
-						//data.ParentCommitHash.Add(map[i].Substring(map[i].IndexOf('$')));
-      //          }
-                //i++;
-                //var split = map[i].Replace(VaultTag, string.Empty).Trim().Split('@').LastOrDefault().Split('/');
-                //if (split.Length != 3)
-                //{
-                //    continue;
-                //}
-
-                //if (long.TryParse(split[1], out TxId))
-                //{
-                //    data.TxId = long.Parse(split[1]);
-                //}
-                //else
-                //{
-                //    continue;
-                //}
-
-                //commitInfos.Add(split[0] + ":" + split[2], data);
             }
 
 			return map.ToList();
