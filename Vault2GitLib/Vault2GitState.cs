@@ -8,15 +8,17 @@ namespace Vault2Git.Lib
 {
     public partial class Vault2GitState
     {
+
+        private const string DEFAULT_BRANCH = "master";
         /// <summary>
-        /// A list of git hashes maintained by the object
+        /// An object to manage references to all commits
         /// </summary>
-        private List<GitCommitHash> _gitCommitHash;
+        private GitCommitCollection _gitCommits;
 
         /// <summary>
-        /// A list of vault transactions maintained by the object
+        /// An object to manage all transactions
         /// </summary>
-        private List<VaultTx> _vaultTx;
+        private VaultTxCollection _vaultTxs;
 
         /// <summary>
         /// An object containing the current mapping from vault transaction to git commit hash
@@ -25,18 +27,31 @@ namespace Vault2Git.Lib
 
         public Vault2GitState()
         {
-            _gitCommitHash = new List<GitCommitHash>();
             _vaultTx2GitTx = new List<VaultTx2GitTx>();
-            _vaultTx = new List<VaultTx>();
+            _gitCommits = new GitCommitCollection();
+            _vaultTxs = new VaultTxCollection();
         }
 
         public GitCommitHash getGitCommitHash(string commitHash)
         {
+            return _gitCommits.AddCommit(commitHash);
             throw new NotImplementedException();
         }
-        public GitCommitHash AddCommit(string commitHash)
+  
+        internal GitCommit CreateGitCommit(string commitHash)
         {
-            throw new NotImplementedException();
+            return _gitCommits[commitHash] ?? _gitCommits.AddCommit(commitHash);
+        }
+
+
+        internal VaultTx CreateVaultTransaction(long txId, string branchName = DEFAULT_BRANCH)
+        {
+            return _vaultTxs[txId] ?? _vaultTxs.Add(txId, branchName);
+        }
+
+        internal SortedList<long, VaultTx> GetVaultTransactionsToProcess(long latestTxId)
+        {
+            return _vaultTxs.getVaultTxAfter(latestTxId);
         }
     }
 }

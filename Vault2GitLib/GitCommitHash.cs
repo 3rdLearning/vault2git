@@ -39,7 +39,7 @@ namespace Vault2Git.Lib
             /// Constructor to create a new GitCommitHash using an existing 20 byte array
             /// </summary>
             /// <param name="CommitHashBytes">The binary representation of an SHA-1 hash</param>
-            public GitCommitHash(byte[] CommitHashBytes)
+            private GitCommitHash(byte[] CommitHashBytes)
             {
                 if (CommitHashBytes.Length != 20)
                 {
@@ -47,6 +47,16 @@ namespace Vault2Git.Lib
                 }
                 _CommitHash = CommitHashBytes;
                 _replacement = this;
+            }
+
+            public static GitCommitHash Create(string commitHash)
+            {
+                return new GitCommitHash(commitHash);
+            }
+
+            public static GitCommitHash Create(byte[] CommitHashBytes)
+            {
+                return new GitCommitHash(CommitHashBytes);
             }
 
             /// <summary>

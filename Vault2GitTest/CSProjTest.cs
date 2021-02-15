@@ -22,7 +22,7 @@ namespace Vault2GitTest
             try
             {
                 File.Copy(initialFile, tempFile, true);
-                Vault2Git.Lib.Processor.removeSCCFromCSProj(tempFile);
+                //Vault2Git.Lib.Processor.removeSCCFromCSProj(tempFile);
                 string result = File.ReadAllText(tempFile);
                 string expectedResult = File.ReadAllText(resultFile);
                 Console.WriteLine(result);

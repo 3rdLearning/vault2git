@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,93 +9,61 @@ namespace Vault2Git.Lib
 {
     public partial class Vault2GitState
     {
-        private class GitCommitHashCollection
+        private class GitCommitCollection
         {
+            private GitCommitHashCollection _gitCommitHashes;
+            private Hashtable _gitCommits;
 
-            private const int ArrayBlockSize = 100;
-
-            private GitCommitHash[] _gitCommitHashes;
-            private int _hashCount;
-            private GitCommitHash _gitCommitHashInitReference = null;
-
-            public GitCommitHashCollection()
+            public GitCommitCollection()
             {
-                _gitCommitHashes = new GitCommitHash[ArrayBlockSize];
-                _hashCount = 0;
+                _gitCommits = new Hashtable();
+                _gitCommitHashes = new GitCommitHashCollection();
             }
 
-            public ref GitCommitHash this[string commitHash]
+            public GitCommit this[string commitHash]
             {
                 get
                 {
-                    ref GitCommitHash NewCommitHash = ref _gitCommitHashInitReference;
-                    if (TryFindCommit(commitHash, ref NewCommitHash))
-                        throw new IndexOutOfRangeException(@"Index Key {commitHash} not found");
-                    return ref NewCommitHash;
+                    return (_gitCommits[commitHash] as GitCommit);
                 }
             }
 
-
-            private bool TryFindCommit(string commitHash, ref GitCommitHash gitCommitHash)
+            public GitCommit AddCommit(string commitHash)
             {
-                for (int i=0; i < _hashCount; i++ )
-                {
-                    if (_gitCommitHashes[i].ToString(false) == commitHash.ToString())
-                    {
-                        gitCommitHash = _gitCommitHashes[i];
-                        return true;
-                    }
-                }
-
-                return false;
+                return this[commitHash] ?? AddCommitToCollection(commitHash);
             }
 
-            //private ref GitCommitHash FindCommit(string commitHash)
-            //{
-            //    ref GitCommitHash NewCommitHash = ref _gitCommitHashInitReference;
-
-            //    if (TryFindCommit(commitHash, ref NewCommitHash))
-            //        return ref NewCommitHash;
-                
-            //    return ref NewCommitHash;
-            //}
-
-            //private ref GitCommitHash FindCommit(byte[] commitHashBytes)
-            //{
-            //    string commitHash = BitConverter.ToString(commitHashBytes).Replace("-", string.Empty);
-            //    return ref FindCommit(commitHash);
-            //}
-
-            public ref GitCommitHash AddCommitHash(string commitHash)
+            public GitCommit AddCommitHash(byte[] commitHashBytes)
             {
-                ref GitCommitHash NewCommitHash = ref _gitCommitHashInitReference;
-
-                // check for existing and return that
-                if (!TryFindCommit(commitHash, ref NewCommitHash))
-                    NewCommitHash = ref AddCommitHashToCollection(commitHash);
-
-                return ref NewCommitHash;
-
+                string commitHash = CommitHashBytesToString(commitHashBytes);
+                return this[commitHash] ?? AddCommitToCollection(commitHash);
             }
 
-            private ref GitCommitHash AddCommitHashToCollection(string commitHash)
+            private GitCommit AddCommitToCollection(string commitHash)
             {
-                if (_hashCount % ArrayBlockSize == 0)
-                {
-                    _gitCommitHashes = new GitCommitHash[_gitCommitHashes.Length + ArrayBlockSize];
-
-                }
-                _gitCommitHashes[_hashCount] = new GitCommitHash(commitHash);
-
-                return ref _gitCommitHashes[_hashCount++];
+                _gitCommits[commitHash] = GitCommitHash.Create(commitHash);
+                return this[commitHash];
             }
 
-            public GitCommitHash AddCommitHash(byte[] commitHashBytes)
+            internal GitCommit Add(string commitHash)
             {
-                return new GitCommitHash(commitHashBytes);
+                throw new NotImplementedException();
+            }
+
+            private GitCommit AddCommitToCollection(byte[] commitHashBytes)
+            {
+                string commitHash = CommitHashBytesToString(commitHashBytes);
+                _gitCommits[commitHash] = GitCommitHash.Create(commitHashBytes);
+
+                return this[commitHash];
+            }
+
+            private string CommitHashBytesToString(byte[] commitHashBytes)
+            {
+                return BitConverter.ToString(commitHashBytes).Replace("-", string.Empty);
             }
         }
 
-
     }
 }
+

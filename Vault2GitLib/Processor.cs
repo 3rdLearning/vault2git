@@ -9,10 +9,12 @@ using System.Text.RegularExpressions;
 using VaultClientIntegrationLib;
 using VaultClientOperationsLib;
 using VaultLib;
-using System.Xml.XPath;
+using Vault2Git.Lib;
+//using System.Xml.XPath;
 using System.Xml;
 using System.Xml.Linq;
-using System.Globalization;
+using static Vault2Git.Lib.Vault2GitState;
+//using System.Globalization;
 
 namespace Vault2Git.Lib
 {
@@ -80,7 +82,7 @@ namespace Vault2Git.Lib
 		/// <summary>
 		/// Maps Vault TransactionID to Git Commit SHA-1 Hash
 		/// </summary>
-		private IDictionary<long, VaultTx2GitTx> _txidMappings;
+		//private IDictionary<long, VaultTx2GitTx> _txidMappings;
 
 		//private string currentGitBranch;
 
@@ -151,59 +153,54 @@ namespace Vault2Git.Lib
 
                 List<string> vaultRepoPaths = git2vaultRepoPath;
 
-                VaultVersionInfo currentGitVaultVersion = new VaultVersionInfo
-                {
-                    Branch = string.Empty,
-                    Comment = string.Empty,
-                    Login = string.Empty,
-                    Path = string.Empty,
-                    TimeStamp = VaultLib.VaultDateTime.MinValue,
-                    TxId = 0,
-                    Version = 0
-                };
 
-				//get current version
+				VaultTx currentGitVaultVersion = new VaultTx();
+
+				// get current vault version from last git commit
 				ticks += gitVaultVersion(ref currentGitVaultVersion);
 
-                //get vaultVersions
+                
                 Console.Write($"Fetching history from vault from {RevisionStartDate} to {RevisionEndDate}... ");
 
-                IDictionary<string, VaultVersionInfo> vaultVersions = new SortedList<string, VaultVersionInfo>();
-                foreach (string rp in vaultRepoPaths)
+				// populate ConversionState with all vault transactions in the repository paths
+				foreach (string rp in vaultRepoPaths)
                 {
-                    ticks += vaultPopulateInfo(rp, vaultVersions);
+                    ticks += vaultPopulateInfo(rp);
                 }
-                
-                var gitProgress = vaultVersions.Where(p => (p.Value.Branch == currentGitVaultVersion.Branch && p.Value.TxId == currentGitVaultVersion.TxId));
 
-                var versionsToProcess = gitProgress.Any() ? vaultVersions.Where(p => (p.Key.CompareTo(gitProgress.FirstOrDefault().Value.TimeStamp.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss.fff") + ":" + gitProgress.FirstOrDefault().Value.Branch + ':' + gitProgress.FirstOrDefault().Value.TxId.ToString()) > 0 )) : vaultVersions;
+				// get an ordered list of the Vault transactions that still need to be processed
+				SortedList<long,VaultTx> versionsToProcess = ConversionState.GetVaultTransactionsToProcess(currentGitVaultVersion.TxId);
 
-                var keyValuePairs = versionsToProcess.ToList();
+				//var versionsToProcess = gitProgress.Any() ? vaultVersions.Where(p => 
+				//	(p.Key.CompareTo(gitProgress.FirstOrDefault().Value.TimeStamp.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss.fff") + ":"
+				//	+ gitProgress.FirstOrDefault().Value.Branch + ':' + gitProgress.FirstOrDefault().Value.TxId.ToString()) > 0 )) : vaultVersions;
 
-                Console.WriteLine($"done! Fetched {keyValuePairs.Count} versions for processing.");
+                //var keyValuePairs = versionsToProcess.ToList();
+
+                Console.WriteLine($"done! Fetched {versionsToProcess.Count} versions for processing.");
 
                 //report init
                 if (null != Progress)
 					if (Progress(ProgressSpecialVersionInit, 0L, ticks))
 						return true;
 
-				var counter = 0;
 				overallProcessingTime.Restart();
-				foreach (var version in keyValuePairs)
+				for (int i = 0; i < versionsToProcess.Count; i++)
 				{
 					versionProcessingTime.Restart();
                     ticks = 0;
+					VaultTx version = versionsToProcess.Values[i];
 
-                    ticks = Init(version.Value, ref gitCurrentBranch);
+                    ticks = Init(version, ref gitCurrentBranch);
 
                     //check to see if we are in the correct branch
-                    if (!gitCurrentBranch.Equals(version.Value.Branch, StringComparison.OrdinalIgnoreCase))
-                        ticks += this.gitCheckoutBranch(version.Value.Branch, out gitCurrentBranch);
+                    if (!gitCurrentBranch.Equals(version.Branch, StringComparison.OrdinalIgnoreCase))
+                        ticks += this.gitCheckoutBranch(version.Branch, out gitCurrentBranch);
 
                     //get vault version
-                    Console.Write($"Starting get version {version.Key} from Vault...");
+                    Console.Write($"Starting get version Tx:{version.TxId} - {version.Branch}:{version.Version} from Vault...");
 
-                    ticks += vaultGet(version.Value);
+                    ticks += vaultGet(version);
 
 					Console.WriteLine($" done!");
 					//change all sln files
@@ -233,31 +230,29 @@ namespace Vault2Git.Lib
 						.Where(f => !f.Contains("~"))
 						.ToList()
 						.ForEach(f => ticks += removeSCCFromVDProj(f));
-					//get vault version info
-					VaultVersionInfo info = vaultVersions[version.Key];
 					//commit
 					Console.Write($"Starting git commit...");
-					buildCommitMessage(info);
-					ticks += gitCommit(info, GitDomainName);
+					buildCommitMessage(version);
+					ticks += gitCommit(version, GitDomainName);
 					Console.WriteLine($" done!");
 					if (null != Progress)
-						if (Progress(info.Version, keyValuePairs.Count, ticks))
+						if (Progress(version.Version, versionsToProcess.Count, ticks))
 							return true;
-					counter++;
+					
 					//call gc
-					if (0 == counter % GitGCInterval)
+					if (0 == i + 1 % GitGCInterval)
 					{
 						ticks = gitGC();
 						if (null != Progress)
-							if (Progress(ProgressSpecialVersionGc, keyValuePairs.Count, ticks))
+							if (Progress(ProgressSpecialVersionGc, versionsToProcess.Count, ticks))
 								return true;
 					}
 					//check if limit is reached
-					if (counter >= limitCount)
+					if (i + 1 >= limitCount)
 						break;
 					completedStepCount++;
 					versionProcessingTime.Stop();
-					Tools.WriteProgressInfo(string.Empty, versionProcessingTime.Elapsed, completedStepCount, keyValuePairs.Count, overallProcessingTime.Elapsed);
+					Tools.WriteProgressInfo(string.Empty, versionProcessingTime.Elapsed, completedStepCount, versionsToProcess.Count, overallProcessingTime.Elapsed);
 
                     //check if escape key is pressed
                     if (Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)
@@ -451,7 +446,7 @@ namespace Vault2Git.Lib
 			return Environment.TickCount - ticks;
 		}
 
-		private int vaultPopulateInfo(string repoPath, IDictionary<string, VaultVersionInfo> info)
+		private int vaultPopulateInfo(string repoPath)
 		{
 			var ticks = Environment.TickCount;
 
@@ -492,18 +487,17 @@ namespace Vault2Git.Lib
                     VaultDateTime.Parse(EndDate),
                     0);
 
-                foreach (VaultTxHistoryItem i in historyItems)
-                    info.Add(i.TxDate.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss.fff")+ ':' + branchName + ':' + i.TxID.ToString(), new VaultVersionInfo()
-                    {
-                        Branch = branchName,
-                        Path = f.FullPath,
-                        Version = i.Version,
-                        TxId = i.TxID,
-                        Comment = i.Comment,
-                        Login = i.UserLogin,
-                        TimeStamp = i.TxDate,
-						MergedFrom = (i.Comment.TrimStart().StartsWith("Merge Branches : Origin=$")) ? i.Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/')?.LastOrDefault() : string.Empty
-					});;
+				foreach (VaultTxHistoryItem i in historyItems)
+				{
+					VaultTx info = ConversionState.CreateVaultTransaction(i.TxID, branchName);
+
+					info.Path = f.FullPath;
+					info.Version = i.Version;
+					info.Comment = i.Comment;
+					info.Login = i.UserLogin;
+					info.TimeStamp = i.TxDate;
+					info.MergedFrom = (i.Comment.TrimStart().StartsWith("Merge Branches : Origin=$")) ? i.Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/')?.LastOrDefault() : string.Empty;
+				}
 			}
             
             return Environment.TickCount - ticks;
@@ -581,7 +575,7 @@ namespace Vault2Git.Lib
 			return true;
 		}
 
-		private int vaultGet(VaultVersionInfo info)
+		private int vaultGet(VaultTx info)
 		{
 			var ticks = Environment.TickCount;
 			//apply version to the repo folder
@@ -623,7 +617,7 @@ namespace Vault2Git.Lib
 			return Environment.TickCount - ticks;
 		}
 
-		private int gitVaultVersion(ref VaultVersionInfo currentVersion)
+		private int gitVaultVersion(ref VaultTx currentVersion)
 		{
 			string[] msgs;
 			//get info
@@ -633,11 +627,11 @@ namespace Vault2Git.Lib
 			return ticks;
 		}
 
-		private int Init(VaultVersionInfo info, ref string gitCurrentBranch)
+		private int Init(VaultTx info, ref string gitCurrentBranch)
 		{
             //set vault working folder
 			int ticks = setVaultWorkingFolder(info.Path);
-            bool branchExists = false;
+			bool branchExists;
 
             //verify git branch exists - create if needed
             ticks += gitVerifyBranchExists(info.Branch, out branchExists);
@@ -690,13 +684,14 @@ namespace Vault2Git.Lib
 			{
 				string gitCommitId = msgs[0].Split(' ')[2];
 				gitCommitId = getFullHash(gitCommitId.Substring(0, gitCommitId.Length - 1));
-				AddMapping(new VaultVersionInfo { Branch = "Master", TxId = 0 }, gitCommitId);
+				
+				AddMapping(VaultTx.Create(0), gitCommitId);
 			}
 
 			return ticks;
 		}
 
-        private int gitCommit(VaultVersionInfo info, string gitDomainName)
+        private int gitCommit(VaultTx info, string gitDomainName)
         {
             string gitCurrentBranch;
             string gitName;
@@ -704,6 +699,7 @@ namespace Vault2Git.Lib
             string gitAuthor;
             string commitTimeStamp;
 
+			
             this.gitCurrentBranch(out gitCurrentBranch);
 
 			string[] msgs;
@@ -750,8 +746,10 @@ namespace Vault2Git.Lib
 			if (msgs[0].StartsWith("[" + gitCurrentBranch))
 			{
 				string gitCommitId = msgs[0].Split(' ')[1];
-				gitCommitId = getFullHash(gitCommitId.Substring(0, gitCommitId.Length - 1));
-				AddMapping(info, gitCommitId);
+				string commitHash = getFullHash(gitCommitId.Substring(0, gitCommitId.Length - 1));
+				//ConversionState.
+				ConversionState.CreateGitCommit(commitHash);
+				AddMapping(info, commitHash);
 			}
 			return ticks;
 		}
@@ -775,7 +773,7 @@ namespace Vault2Git.Lib
 			return ticks;
         }
 
-        private int gitCreateBranch(VaultVersionInfo info, out string currentBranch)
+        private int gitCreateBranch(VaultTx info, out string currentBranch)
         {
             /*  get vault items (itempath1/itempath2)
              *  filter by itempath2 = branchpath
@@ -899,7 +897,7 @@ namespace Vault2Git.Lib
             return ticks;
         }
 
-		private bool buildCommitMessage(VaultVersionInfo info)
+		private bool buildCommitMessage(VaultTx info)
 		{
 			//parse path repo$RepoPath@branch/version/trx
 			var r = new StringBuilder(info.Comment);
@@ -909,7 +907,7 @@ namespace Vault2Git.Lib
 			return Tools.SaveFile(GitCommitMessageTempFile, r.ToString());
 		}
 
-		private bool getVaultVersionFromGitLogMessage(string stringToParse, ref VaultVersionInfo info)
+		private bool getVaultVersionFromGitLogMessage(string stringToParse, ref VaultTx info)
 		{
 			//search for version tag
 			var versionStrings = stringToParse.Split(new string[] { VaultTag }, StringSplitOptions.None);
@@ -924,20 +922,15 @@ namespace Vault2Git.Lib
 			var ids = version[1].Trim().Split('/');
 			if (null == ids || ids.Count() != 3)
 				return false;
-
-			// remove repository from string
-			if (version[0].IndexOf('$') > 0)
-				info.Path = version[0].Remove(0, version[0].IndexOf('$'));
 			
-			//populate other fields
-			info.Branch = ids[0];
-			info.Comment = versionStrings[0];
-			long ver, txId;
-			long.TryParse(ids[1], out ver);
-			long.TryParse(ids[2], out txId);
+			// remove repository from string
+			string path = (version[0].IndexOf('$') > 0) ? version[0].Remove(0, version[0].IndexOf('$')) : string.Empty;
 
-			info.Version = ver;
-			info.TxId = txId;
+            //populate other fields
+            long.TryParse(ids[1], out long ver);
+            long.TryParse(ids[2], out long txId);
+
+			info = new VaultTx(txId, ids[0], path, ver, versionStrings[0], string.Empty, string.Empty, VaultDateTime.MinValue);
 
 			return true;
         }
@@ -1095,14 +1088,22 @@ namespace Vault2Git.Lib
 			return Environment.TickCount - ticks;
 		}
 
-		private void AddMapping(VaultVersionInfo info, string gitHash)
+		private void AddMapping(VaultTx info, string commitHash)
 		{
-            long key = info.TxId;
-            if (_txidMappings == null || _txidMappings.Count == 0)
-			//Reload from file
-			{
-				_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
-			}
+            
+			long key = info.TxId;
+            GitCommitHash gitCommitHash = ConversionState.getGitCommitHash(commitHash);
+
+			ConversionState.
+
+
+   //         if (_txidMappings == null || _txidMappings.Count == 0)
+   ////Reload from file
+   //{
+   //	_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
+   //}
+   //ConversionState.getGitCommitHash(commitHash)
+
 			if (_txidMappings.ContainsKey(info.TxId))
 			{
 				if (_txidMappings[key].GitHash.ToString() != gitHash)

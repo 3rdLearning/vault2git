@@ -95,13 +95,15 @@
   <ItemGroup>
     <Compile Include="GitCommit.cs" />
     <Compile Include="GitCommitCollection.cs" />
+    <Compile Include="GitCommitHashCollection.cs" />
     <Compile Include="GitCommitHash.cs" />
     <Compile Include="Vault2GitState.cs" />
     <Compile Include="VaultTx2GitTx.cs" />
-    <Compile Include="Processor.cs" />
+    <None Include="Processor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools.cs" />
     <Compile Include="VaultTx.cs" />
+    <Compile Include="VaultTxCollection.cs" />
     <Compile Include="VaultVersionInfo.cs" />
   </ItemGroup>
   <ItemGroup>

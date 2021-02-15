@@ -4,31 +4,67 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using VaultLib;
 
 namespace Vault2Git.Lib
 {
     public partial class Vault2GitState
     {
-        private class VaultTx
+        public class VaultTx
         {
-            private readonly string _branch;
-            private readonly long _txId;
+            //private const string DEFAULT_BRANCH = "master";
+            
+            private long _txId;
+            private string _branch;
+            private string _path;
+            private long _version;
+            private string _comment;
+            private string _login;
+            private string _mergedFrom;
+            private VaultLib.VaultDateTime _timeStamp;
+            private long txId;
 
 
-            public VaultTx(long txId, string branch = "master")
+            public long TxId => _txId;
+            public string Branch => _branch;
+            public string Path { get => _path; set => _path = value; }
+            public long Version { get => _version; set => _version = value; }
+            public string Comment { get => _comment; set => _comment = value; }
+            public string Login { get => _login; set => _login = value; }
+            public string MergedFrom { get => _mergedFrom; set => _mergedFrom = value; }
+            public VaultDateTime TimeStamp { get => _timeStamp; set => _timeStamp = value; }
+
+            private VaultTx(long txId, string branch)
             {
                 _branch = branch;
                 _txId = txId;
             }
 
-            public VaultTx(VaultVersionInfo info)
+            public VaultTx()
             {
-                _branch = info.Branch;
-                _txId = info.TxId;
             }
 
-            public string Branch { get => _branch; }
-            public long TxId { get => _txId; }
+            public VaultTx(long txId, string branch, string path, long version, string comment, string login, string mergedFrom, VaultDateTime timeStamp)
+            {
+                _txId = txId;
+                _branch = branch;
+                _path = path;
+                _version = version;
+                _comment = comment;
+                _login = login;
+                _mergedFrom = mergedFrom;
+                _timeStamp = timeStamp;
+            }
+
+            public VaultTx(long txId)
+            {
+                _txId = txId;
+            }
+
+            public static VaultTx Create(long txId, string branch = DEFAULT_BRANCH)
+            {
+                return new VaultTx(txId, branch);
+            }
 
             public static VaultTx Parse(string key)
             {

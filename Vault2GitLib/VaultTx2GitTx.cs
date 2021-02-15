@@ -16,7 +16,7 @@ namespace Vault2Git.Lib
 
             public VaultTx2GitTx(string gitHash, VaultTx vaultTx)
             {
-                _gitHash = new GitCommitHash(gitHash);
+                _gitHash = new GitCommit(gitHash);
                 _vaultTx = vaultTx;
             }
 
@@ -38,7 +38,7 @@ namespace Vault2Git.Lib
             {
             }
 
-            public VaultTx2GitTx(string gitHash, VaultVersionInfo info)
+            public VaultTx2GitTx(GitCommit commit, VaultVersionInfo info)
             {
                 _gitHash = new GitCommitHash(gitHash);
                 _vaultTx = new VaultTx(info);

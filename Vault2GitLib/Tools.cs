@@ -10,21 +10,21 @@ using System.Xml.Serialization;
 
 namespace Vault2Git.Lib
 {
-	public struct GitCommit
-    {
-		public GitCommitHash CommitHash;
-		public List<GitCommitHash> ParentCommitHash;
-		public string Comment;
-		public VaultVersionInfo VaultInfo;
-	}
+	//public struct GitCommit
+ //   {
+	//	public GitCommitHash CommitHash;
+	//	public List<GitCommitHash> ParentCommitHash;
+	//	public string Comment;
+	//	public VaultVersionInfo VaultInfo;
+	//}
 
-	public struct GitVaultMessageTag
-	{
-		public string VaultRepositoryPath;
-		public string Branch;
-		public string CommitHash;
-		public long TxId;
-	}
+	//public struct GitVaultMessageTag
+	//{
+	//	public string VaultRepositoryPath;
+	//	public string Branch;
+	//	public string CommitHash;
+	//	public long TxId;
+	//}
 
 	public static class Tools
 	{

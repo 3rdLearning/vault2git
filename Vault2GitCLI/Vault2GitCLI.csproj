@@ -86,7 +86,13 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="App.QTICreator_4.5..config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="App.TagFx.Service.config">
       <SubType>Designer</SubType>
     </None>
     <None Include="Properties\Settings.settings">
