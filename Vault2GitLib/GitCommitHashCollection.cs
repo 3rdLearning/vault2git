@@ -9,7 +9,7 @@ namespace Vault2Git.Lib
 {
     public partial class Vault2GitState
     {
-        private class GitCommitHashCollection
+        public class GitCommitHashCollection
         {
             private Hashtable _gitCommitHashes;
 
@@ -22,7 +22,7 @@ namespace Vault2Git.Lib
             {
                 get
                 {
-                    return (_gitCommitHashes[commitHash] as GitCommitHash);
+                    return (_gitCommitHashes[commitHash] ?? null) as GitCommitHash;
                 }
             }
 
@@ -34,21 +34,33 @@ namespace Vault2Git.Lib
             public GitCommitHash AddCommitHash(byte[] commitHashBytes)
             {
                 string commitHash = CommitHashBytesToString(commitHashBytes);
-                return this[commitHash] ?? AddCommitHashToCollection(commitHash);
+                return this[commitHash] ?? AddCommitHashToCollection(commitHashBytes);
+            }
+
+            public GitCommitHash AddCommitHash(GitCommitHash gitCommitHash)
+            {
+                return this[gitCommitHash.ToString()] ?? AddCommitHashToCollection(gitCommitHash, gitCommitHash.ToString());
+            }
+
+            private GitCommitHash AddCommitHashToCollection(GitCommitHash gitCommitHash, string commitHash)
+            {
+                _gitCommitHashes[commitHash] = gitCommitHash;
+                return this[commitHash];
+            }
+
+            private GitCommitHash AddCommitHashToCollection(GitCommitHash gitCommitHash)
+            {
+                return AddCommitHashToCollection(gitCommitHash, gitCommitHash.ToString());
             }
 
             private GitCommitHash AddCommitHashToCollection(string commitHash)
             {
-                _gitCommitHashes[commitHash] = GitCommitHash.Create(commitHash);
-                return this[commitHash];
+                return AddCommitHashToCollection(new GitCommitHash(commitHash), commitHash);
             }
 
             private GitCommitHash AddCommitHashToCollection(byte[] commitHashBytes)
             {
-                string commitHash = CommitHashBytesToString(commitHashBytes);
-                _gitCommitHashes[commitHash] = GitCommitHash.Create(commitHashBytes);
-
-                return this[commitHash];
+                return AddCommitHashToCollection(new GitCommitHash(commitHashBytes));
             }
 
             private string CommitHashBytesToString(byte[] commitHashBytes)
@@ -56,8 +68,10 @@ namespace Vault2Git.Lib
                 return BitConverter.ToString(commitHashBytes).Replace("-", string.Empty);
             }
 
-
-
+            public int Count()
+            {
+                return _gitCommitHashes.Count;
+            }
         }
 
 

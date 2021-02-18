@@ -39,7 +39,7 @@ namespace Vault2Git.Lib
             /// Constructor to create a new GitCommitHash using an existing 20 byte array
             /// </summary>
             /// <param name="CommitHashBytes">The binary representation of an SHA-1 hash</param>
-            private GitCommitHash(byte[] CommitHashBytes)
+            public GitCommitHash(byte[] CommitHashBytes)
             {
                 if (CommitHashBytes.Length != 20)
                 {
@@ -47,16 +47,6 @@ namespace Vault2Git.Lib
                 }
                 _CommitHash = CommitHashBytes;
                 _replacement = this;
-            }
-
-            public static GitCommitHash Create(string commitHash)
-            {
-                return new GitCommitHash(commitHash);
-            }
-
-            public static GitCommitHash Create(byte[] CommitHashBytes)
-            {
-                return new GitCommitHash(CommitHashBytes);
             }
 
             /// <summary>
@@ -146,14 +136,16 @@ namespace Vault2Git.Lib
             {
                 if (Object.ReferenceEquals(other, null))
                     return false;
-                if (Object.ReferenceEquals(_replacement, this))
-                {
-                    return (this.ToString() == other.ToString());
-                }
-                else
-                {
-                    return (this.ToString() == other.ToString() || ((IEquatable<GitCommitHash>)_replacement).Equals(other));
-                }
+
+                return (this.ToString() == other.ToString());
+                //if (Object.ReferenceEquals(_replacement, this))
+                //{
+                //    return (this.ToString() == other.ToString());
+                //}
+                //else
+                //{
+                //    return (this.ToString() == other.ToString() || ((IEquatable<GitCommitHash>)_replacement).Equals(other));
+                //}
 
             }
 

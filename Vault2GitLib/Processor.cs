@@ -9,12 +9,10 @@ using System.Text.RegularExpressions;
 using VaultClientIntegrationLib;
 using VaultClientOperationsLib;
 using VaultLib;
-using Vault2Git.Lib;
-//using System.Xml.XPath;
 using System.Xml;
 using System.Xml.Linq;
 using static Vault2Git.Lib.Vault2GitState;
-//using System.Globalization;
+
 
 namespace Vault2Git.Lib
 {
@@ -62,9 +60,6 @@ namespace Vault2Git.Lib
 		private const string _gitAddCmd = "add --all .";
 		private const string _gitStatusCmd = "status --porcelain";
 		private const string _gitLastCommitInfoCmd = "log -1 --all --branches";
-		//private const string _gitLastCommitInfoCmd = "log -1 --all --branches --pretty=format:<c>%n<H>%H</H>%n<P>%P</P>%n<ae>%ae</ae>%n<N><![CDATA[%B]]></N>%n</c>";
-		//private const string _gitAllCommitInfoCmd = "log --all --branches --parents";
-		//private const string _gitAllCommitInfoCmd = "log --all --branches --parents --pretty=format:\"<c>%n<H>%H</H>%n<P>%P</P>%n<ae>%ae</ae>%n<N><![CDATA[%s%b]]></N>%n</c>\"";
 		private const string _gitAllCommitInfoCmd = "log --all --branches --parents --pretty=format:\"<c>%n<H>%H</H>%n<P>%P</P>%n<D>%D</D>%n<ae>%ae</ae>%n<N><![CDATA[%B]]></N>%n</c>\"";
 		private const string _gitReplaceGraftCmd = "replace -f --graft {0} {1}";
 		private const string _gitReplacementCmd = "replace --format=medium --list {0}";
@@ -133,7 +128,7 @@ namespace Vault2Git.Lib
             //create git repo if doesn't exist, otherwise, rebuild vault to git mappings from log
             if (!File.Exists(WorkingFolder + "\\.git\\config"))
             {
-                ticks += gitCreateRepo(ConversionState);
+                ticks += gitCreateRepo();
             }
             else
             {
@@ -141,11 +136,10 @@ namespace Vault2Git.Lib
             }
 
             //get git current branch
-            string gitCurrentBranch;
-			ticks += this.gitCurrentBranch(out gitCurrentBranch);
+            ticks += this.gitCurrentBranch(out string gitCurrentBranch);
 
 
-			ticks += vaultLogin();
+            ticks += vaultLogin();
 			try
 			{
 				//reset ticks
@@ -169,7 +163,7 @@ namespace Vault2Git.Lib
                 }
 
 				// get an ordered list of the Vault transactions that still need to be processed
-				SortedList<long,VaultTx> versionsToProcess = ConversionState.GetVaultTransactionsToProcess(currentGitVaultVersion.TxId);
+				SortedDictionary<long,VaultTx> versionsToProcess = ConversionState.GetVaultTransactionsToProcess(currentGitVaultVersion.TxId);
 
 				//var versionsToProcess = gitProgress.Any() ? vaultVersions.Where(p => 
 				//	(p.Key.CompareTo(gitProgress.FirstOrDefault().Value.TimeStamp.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss.fff") + ":"
@@ -185,11 +179,15 @@ namespace Vault2Git.Lib
 						return true;
 
 				overallProcessingTime.Restart();
-				for (int i = 0; i < versionsToProcess.Count; i++)
+
+				int i = 0;
+				foreach (var kp in versionsToProcess)
+				//for (int i = 0; i < versionsToProcess.Count; i++)
 				{
+
 					versionProcessingTime.Restart();
                     ticks = 0;
-					VaultTx version = versionsToProcess.Values[i];
+					VaultTx version = kp.Value;//versionsToProcess.Values[i];
 
                     ticks = Init(version, ref gitCurrentBranch);
 
@@ -259,6 +257,7 @@ namespace Vault2Git.Lib
                     {
                         break;
                     }
+					i++;
 
                 }
 
@@ -282,24 +281,28 @@ namespace Vault2Git.Lib
         public bool BuildGrafts()
         {
 			//IDictionary<string, IDictionary<string, string>> map = getMappingWithTxIdFromLog();
-			List<GitCommit> map = getMappingWithTxIdFromLog();
+			List<VaultTx2GitTx> map = getMappingWithTxIdFromLog();
 			
-			var origins = map.Where(l => l.Comment.TrimStart().StartsWith("Merge Branches : Origin"));
-
+			var origins = map.Where(l => l.GitCommit.Comment.TrimStart().StartsWith("Merge Branches : Origin"));
+			map.ForEach(o => o.VaultTx.MergedFrom = (o.GitCommit.Comment.TrimStart().StartsWith("Merge Branches : Origin=$")) ? o.GitCommit.Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/')?.LastOrDefault() : string.Empty);
 			// make sure our stored commit mappings all have full hashes
 			// This shouldn't be necessary anymore now that short hashes are converted 
-			RebuildMapping();
-			_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
-			
-            //Process _txIdMappings in reverse order and keep track of latest version inside of loop
+			//RebuildMapping();
 
+
+			//_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
+
+			//Process _txIdMappings in reverse order and keep track of latest version inside of loop
+			
             IDictionary<string, long> branches = new Dictionary<string, long>();
-            IEnumerable<KeyValuePair<long, VaultTx2GitTx>> transactions = _txidMappings.Reverse();
+			SortedDictionary<long, VaultTx2GitTx> mapping = ConversionState.GetMapping();
+
+			//IEnumerable<KeyValuePair<long, VaultTx2GitTx>> transactions = mapping.Reverse(); //_txidMappings.Reverse();
 
 			string branch;
 			long version;
 
-            foreach(KeyValuePair<long, VaultTx2GitTx> t in transactions)
+            foreach(KeyValuePair<long, VaultTx2GitTx> t in mapping)
             {
 				
                 branch = Tools.GetBranchMapping(t.Value.Branch);
@@ -318,28 +321,28 @@ namespace Vault2Git.Lib
 				 * 
 				 */
 
-				var origin = origins.Where(o => o.VaultInfo.Branch == t.Value.Branch && o.VaultInfo.TxId == t.Key);
-				foreach (GitCommit o in origin)
+				var origin = origins.Where(o => o.VaultTx.Branch == t.Value.Branch && o.VaultTx.TxId == t.Key);
+				foreach (VaultTx2GitTx o in origin)
 				{
-                    var sourceBranch = Tools.GetBranchMapping(o.VaultInfo.MergedFrom);
+                    var sourceBranch = Tools.GetBranchMapping(o.VaultTx.MergedFrom);
                     if (branches.ContainsKey(sourceBranch))
                     {
-						var newParentCommitHash = _txidMappings[branches[sourceBranch]].GitHash;
-						if (!o.ParentCommitHash.Contains(newParentCommitHash)) 
+
+						var newParentCommitHash = mapping[branches[sourceBranch]].GitCommit.GetHash();
+						if (!o.GitCommit.GetParentHashes().Contains(newParentCommitHash)) 
 						{
-							o.ParentCommitHash.Add(newParentCommitHash);
+							o.GitCommit.AddParent(newParentCommitHash);
 
-							gitReplaceGraft(o.CommitHash, o.ParentCommitHash);
+							gitReplaceGraft(o.GitCommit.GetHash(), o.GitCommit.GetParentHashes());
 
-							GitCommitHash ReplacementCommitHash;
-							gitReplacmentCommitHash(o.CommitHash, out ReplacementCommitHash);
+                            gitReplacmentCommitHash(o.GitCommit.GetHash(), out GitCommitHash ReplacementCommitHash);
 
 
-							if (o.CommitHash != ReplacementCommitHash)
+                            if (o.GitCommit.GetHash() != ReplacementCommitHash)
 							{
-								_txidMappings[branches[branch]].GitHash.Replace(ReplacementCommitHash);
+								mapping[branches[branch]].GitCommit.GetHash().Replace(ReplacementCommitHash);
 								Console.WriteLine(string.Format("Replaced commit {0} with commit {1} to add new parent commit {2}",
-									o.CommitHash.ToString(),
+									o.GitCommit.GetHash().ToString(false),
 									ReplacementCommitHash.ToString(),
 									newParentCommitHash.ToString())
 								); ;
@@ -496,7 +499,10 @@ namespace Vault2Git.Lib
 					info.Comment = i.Comment;
 					info.Login = i.UserLogin;
 					info.TimeStamp = i.TxDate;
-					info.MergedFrom = (i.Comment.TrimStart().StartsWith("Merge Branches : Origin=$")) ? i.Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/')?.LastOrDefault() : string.Empty;
+					if (i.Comment != null)
+					{
+						info.MergedFrom = (i.Comment.TrimStart().StartsWith("Merge Branches : Origin=$")) ? i.Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/')?.LastOrDefault() : string.Empty;
+					}
 				}
 			}
             
@@ -515,33 +521,29 @@ namespace Vault2Git.Lib
 			string repositoryFolderPath = "$";
 
 			long objId = RepositoryUtil.FindVaultTreeObjectAtReposOrLocalPath(repositoryFolderPath).ID;
-			string qryToken;
-			long rowsRetMain;
-			long rowsRetRecur;
-
-			VaultLabelItemX[] labelItems;
-
-			ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath, objId, false, false, true, true, 0,
-				out rowsRetMain,
-				out rowsRetRecur,
-				out qryToken);
-
-			//ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath,
-			//														   objId,
-			//														   true, // get recursive
-			//														   true, // get inherited
-			//														   true, // get file items
-			//														   true, // get folder items
-			//														   0,    // no limit on results
-			//														   out rowsRetMain,
-			//														   out rowsRetRecur,
-			//out qryToken);
 
 
-			ServerOperations.client.ClientInstance.GetLabelQueryItems_Recursive(qryToken,
+            ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath, objId, false, false, true, true, 0,
+                out long rowsRetMain,
+                out long rowsRetRecur,
+                out string qryToken);
+
+            //ServerOperations.client.ClientInstance.BeginLabelQuery(repositoryFolderPath,
+            //														   objId,
+            //														   true, // get recursive
+            //														   true, // get inherited
+            //														   true, // get file items
+            //														   true, // get folder items
+            //														   0,    // no limit on results
+            //														   out rowsRetMain,
+            //														   out rowsRetRecur,
+            //out qryToken);
+
+
+            ServerOperations.client.ClientInstance.GetLabelQueryItems_Recursive(qryToken,
 				0,
 				(int)rowsRetRecur,
-				out labelItems);
+				out VaultLabelItemX[] labelItems);
 
             if (labelItems == null)
                 labelItems = new VaultLabelItemX[0];
@@ -631,10 +633,9 @@ namespace Vault2Git.Lib
 		{
             //set vault working folder
 			int ticks = setVaultWorkingFolder(info.Path);
-			bool branchExists;
 
             //verify git branch exists - create if needed
-            ticks += gitVerifyBranchExists(info.Branch, out branchExists);
+            ticks += gitVerifyBranchExists(info.Branch, out bool branchExists);
 
             if (branchExists)
             {
@@ -651,13 +652,12 @@ namespace Vault2Git.Lib
 
 		private int gitReplacmentCommitHash(GitCommitHash CommitHash, out GitCommitHash ReplacementCommitHash )
         {
-			int ticks = 0;
-			ReplacementCommitHash = CommitHash;
+            ReplacementCommitHash = CommitHash;
 
 			string ReplacementHash;
-			ticks = gitReplacement(CommitHash, out ReplacementHash);
+            int ticks = gitReplacement(CommitHash, out ReplacementHash);
 
-			if (ReplacementHash != string.Empty)
+            if (ReplacementHash != string.Empty)
 				ReplacementCommitHash = new GitCommitHash(ReplacementHash);
 
 			return ticks;
@@ -672,20 +672,20 @@ namespace Vault2Git.Lib
 
 		private int gitInitialCommit()
         {
-			string[] msgs;
 
-			Dictionary<string, string> env = new Dictionary<string, string>();
-			env.Add("GIT_COMMITTER_DATE", DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"));
+            Dictionary<string, string> env = new Dictionary<string, string>();
+            env.Add("GIT_COMMITTER_DATE", DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"));
 
 
-			int ticks = runGitCommand(string.Format(_gitInitInitalCommitCmd, DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"), VaultTag), string.Empty, out msgs, env);
+			int ticks = runGitCommand(string.Format(_gitInitInitalCommitCmd, DateTime.Parse(RevisionStartDate).ToString("yyyy-MM-ddTHH:mm:ss.fff"), VaultTag), string.Empty, out string[] msgs, env);
 
 			if (msgs.Any())
 			{
-				string gitCommitId = msgs[0].Split(' ')[2];
-				gitCommitId = getFullHash(gitCommitId.Substring(0, gitCommitId.Length - 1));
-				
-				AddMapping(VaultTx.Create(0), gitCommitId);
+				string commitHash = msgs[0].Split(' ')[2];
+				commitHash = getFullHash(commitHash.Substring(0, commitHash.Length - 1));
+				GitCommit gitCommit = ConversionState.CreateGitCommit(commitHash);
+
+				AddMapping(VaultTx.Create(0), gitCommit);
 			}
 
 			return ticks;
@@ -703,7 +703,7 @@ namespace Vault2Git.Lib
             this.gitCurrentBranch(out gitCurrentBranch);
 
 			string[] msgs;
-			var ticks = runGitCommand(_gitAddCmd, string.Empty, out msgs);
+			var ticks = runGitCommand(_gitAddCmd, string.Empty, out _);
 			if (SkipEmptyCommits)
 			{
 				//checking status
@@ -729,8 +729,11 @@ namespace Vault2Git.Lib
             }
 
             commitTimeStamp = info.TimeStamp.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss");
+			
+			//if info.MergedFrom
 
-            Dictionary<string, string> env = new Dictionary<string, string>();
+
+			Dictionary<string, string> env = new Dictionary<string, string>();
             env.Add("GIT_COMMITTER_DATE", commitTimeStamp);
             env.Add("GIT_COMMITTER_NAME", gitName);
             env.Add("GIT_COMMITTER_EMAIL", gitEmail);
@@ -747,14 +750,13 @@ namespace Vault2Git.Lib
 			{
 				string gitCommitId = msgs[0].Split(' ')[1];
 				string commitHash = getFullHash(gitCommitId.Substring(0, gitCommitId.Length - 1));
-				//ConversionState.
-				ConversionState.CreateGitCommit(commitHash);
-				AddMapping(info, commitHash);
+				GitCommit gitCommit = ConversionState.CreateGitCommit(commitHash);
+				AddMapping(info, gitCommit);
 			}
 			return ticks;
 		}
 
-        private int gitCreateRepo(Vault2GitState state)
+        private int gitCreateRepo()
         {
 			if (!Directory.Exists(WorkingFolder))
 			{
@@ -792,10 +794,10 @@ namespace Vault2Git.Lib
             else
                 sourceBranch = "master:";
 
-            VaultTx2GitTx gitStartPoint = GetMapping(new VaultVersionInfo { Branch = Tools.GetBranchMapping(sourceBranch), TxId = info.TxId});
+            VaultTx2GitTx gitStartPoint = ConversionState.GetLastBranchMapping(Tools.GetBranchMapping(sourceBranch));
 
             string[] msgs;
-            int ticks = runGitCommand(string.Format(_gitCreateBranch, info.Branch, gitStartPoint.GitHash), string.Empty, out msgs);
+            int ticks = runGitCommand(string.Format(_gitCreateBranch, info.Branch, gitStartPoint.GitCommit.GetHash().ToString()), string.Empty, out msgs);
             currentBranch = info.Branch;
 
             return ticks;
@@ -841,8 +843,7 @@ namespace Vault2Git.Lib
 
 		private int gitAddAll()
 		{
-			string[] msgs;
-			int ticks = runGitCommand(_gitAddCmd, string.Empty, out msgs);
+            int ticks = runGitCommand(_gitAddCmd, string.Empty, out _);
 
 			return ticks;
 		}
@@ -878,14 +879,12 @@ namespace Vault2Git.Lib
         {
             //checkout branch
             int ticks = 0;
-            string[] msgs;
-
-            ticks += runGitCommand(string.Format(_gitCheckoutCmd, gitBranch), string.Empty, out msgs);
+            ticks += runGitCommand(string.Format(_gitCheckoutCmd, gitBranch), string.Empty, out _);
 
 
             for (int tries = 0; ; tries++)
             {
-                ticks += runGitCommand(string.Format(_gitCheckoutCmd, gitBranch), string.Empty, out msgs);
+                ticks += runGitCommand(string.Format(_gitCheckoutCmd, gitBranch), string.Empty, out _);
                 //confirm current branch (sometimes checkout failed)
                 
                 ticks += this.gitCurrentBranch(out currentBranch);
@@ -952,22 +951,19 @@ namespace Vault2Git.Lib
 
 		private int gitAddTag(string gitTagName, string gitCommitId, string gitTagComment)
 		{
-			string[] msg;
-			return runGitCommand(string.Format(_gitAddTagCmd, gitTagName, gitCommitId, gitTagComment),
-				string.Empty,
-				out msg);
-		}
+            return runGitCommand(string.Format(_gitAddTagCmd, gitTagName, gitCommitId, gitTagComment),
+                string.Empty,
+                out _);
+        }
 
 		private int gitGC()
 		{
-			string[] msg;
-			return runGitCommand(_gitGCCmd, string.Empty, out msg);
+            return runGitCommand(_gitGCCmd, string.Empty, out _);
 		}
 
 		private int gitFinalize()
 		{
-			string[] msg;
-			return runGitCommand(_gitFinalizer, string.Empty, out msg);
+            return runGitCommand(_gitFinalizer, string.Empty, out _);
 		}
 
 		private int setVaultWorkingFolder(string repoPath)
@@ -1088,106 +1084,113 @@ namespace Vault2Git.Lib
 			return Environment.TickCount - ticks;
 		}
 
-		private void AddMapping(VaultTx info, string commitHash)
+		private void AddMapping(VaultTx info, GitCommit gitCommit )
 		{
-            
-			long key = info.TxId;
-            GitCommitHash gitCommitHash = ConversionState.getGitCommitHash(commitHash);
+			//long key = info.TxId;
 
-			ConversionState.
+			ConversionState.CreateMapping(gitCommit, info);
+			//ConversionState.
 
 
-   //         if (_txidMappings == null || _txidMappings.Count == 0)
-   ////Reload from file
-   //{
-   //	_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
-   //}
-   //ConversionState.getGitCommitHash(commitHash)
 
-			if (_txidMappings.ContainsKey(info.TxId))
-			{
-				if (_txidMappings[key].GitHash.ToString() != gitHash)
-                {
-					VaultTx2GitTx newValue = new VaultTx2GitTx(gitHash, info);
-					Console.WriteLine($"Updated value for existing key {key}:{info.Branch} from {_txidMappings[key].GitHash} to {gitHash}.");
-					_txidMappings[key] = newValue;
-				}
-			}
-			else
-            {
-				VaultTx2GitTx newEntry = new VaultTx2GitTx(gitHash, info);
-				_txidMappings.Add(newEntry.TxId, newEntry);
-			}
-				
-			Tools.SaveMapping(_txidMappings.Values.ToList(), MappingSaveLocation);
+			//         if (_txidMappings == null || _txidMappings.Count == 0)
+			////Reload from file
+			//{
+			//	_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
+			//}
+			//ConversionState.getGitCommitHash(commitHash)
+
+			//if (_txidMappings.ContainsKey(info.TxId))
+			//{
+			//	if (_txidMappings[key].GitHash.ToString() != gitHash)
+			//             {
+			//		VaultTx2GitTx newValue = new VaultTx2GitTx(gitHash, info);
+			//		Console.WriteLine($"Updated value for existing key {key}:{info.Branch} from {_txidMappings[key].GitHash} to {gitHash}.");
+			//		_txidMappings[key] = newValue;
+			//	}
+			//}
+			//else
+			//         {
+			//	VaultTx2GitTx newEntry = new VaultTx2GitTx(gitHash, info);
+			//	_txidMappings.Add(newEntry.TxId, newEntry);
+			//}
+			ConversionState.SaveMapping(MappingSaveLocation);
+			//Tools.SaveMapping(ConversionState.GetMapping(), MappingSaveLocation);
 		}
 
-		private VaultTx2GitTx GetMapping(VaultVersionInfo info)
+		private VaultTx2GitTx GetMapping(VaultTx info)
 		{
-			long key = info.TxId;
-			string branch = info.Branch;
+			//long key = info.TxId;
+			//string branch = info.Branch;
 
-            if (_txidMappings == null || _txidMappings.Count == 0)
-			//Reload from file
-			{
-				_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
-			}
-			if (!_txidMappings.ContainsKey(key))
-			{
-				// Rebuild mapping from git
-				Console.WriteLine($"Missing an entry for key {key}:{info.Branch}, trying to rebuild mapping from git repository...");
-				_txidMappings = RebuildMapping();
-				if (!_txidMappings.ContainsKey(key))
-				{
-                    if (!(info.TxId == 0) | !(_txidMappings.Where(k => k.Value.Branch == info.Branch).Any()))
-                    {
-                        Console.WriteLine($"Key {key} not found.  Using current version of Master");
-                        // can't find it - the branch was probably deleted in vault
-                        // default to branch off of current state of master
-                        branch = "master";
-                    }
-                    key = _txidMappings.Where(k => k.Value.Branch == branch).FirstOrDefault().Key;
-                }
-			}
-			return _txidMappings[key];
+			VaultTx2GitTx mapping = ConversionState.GetMapping(info);
+			//         if (_txidMappings == null || _txidMappings.Count == 0)
+			////Reload from file
+			//{
+			//	_txidMappings = Tools.ReadFromXml(MappingSaveLocation)?.ToDictionary(kp => kp.Key, kp => kp.Value) ?? new Dictionary<long, VaultTx2GitTx>();
+			//}
+
+
+			//if (!_txidMappings.ContainsKey(key))
+			//{
+			//	// Rebuild mapping from git
+			//	Console.WriteLine($"Missing an entry for key {key}:{info.Branch}, trying to rebuild mapping from git repository...");
+			//	_txidMappings = RebuildMapping();
+			//	if (!_txidMappings.ContainsKey(key))
+			//	{
+			//                 if (!(info.TxId == 0) | !(_txidMappings.Where(k => k.Value.Branch == info.Branch).Any()))
+			//                 {
+			//                     Console.WriteLine($"Key {key} not found.  Using current version of Master");
+			//                     // can't find it - the branch was probably deleted in vault
+			//                     // default to branch off of current state of master
+			//                     branch = "master";
+			//                 }
+			//                 key = _txidMappings.Where(k => k.Value.Branch == branch).FirstOrDefault().Key;
+			//             }
+			//}
+			//return _txidMappings[key];
+			return mapping;
 		}
 
-		private Dictionary<long, VaultTx2GitTx> RebuildMapping()
+		private bool RebuildMapping()
 		{
-            List<GitCommit> commits = getMappingWithTxIdFromLog();
-			
-			var commitInfos = new List<VaultTx2GitTx>();
-			for (var i = 0; i < commits.Count(); i++)
-			{
-				var commitHash = commits[i].CommitHash;
- 
-				VaultTx tx = new VaultTx(commits[i].VaultInfo.TxId, commits[i].VaultInfo.Branch);
-				commitInfos.Add(new VaultTx2GitTx(commitHash, tx));
-			}
+            List<VaultTx2GitTx> mapping = getMappingWithTxIdFromLog();
 
-			Tools.SaveMapping(commitInfos, MappingSaveLocation);
+			//var commitInfos = new List<VaultTx2GitTx>();
+			//for (var i = 0; i < mapping.Count(); i++)
+			//{
+			//	GitCommit gitCommit = mapping[i].GitCommit;
 
-			return commitInfos.ToDictionary(commit => commit.TxId, commit => commit);
+			//	VaultTx tx = new VaultTx(mapping[i].VaultTx.TxId, mapping[i].VaultTx.Branch);
+			//	commitInfos.Add(new VaultTx2GitTx(gitCommit, tx));
+			//}
+
+			ConversionState.BuildVaultTx2GitCommitFromList(mapping);
+			ConversionState.SaveMapping(MappingSaveLocation);
+			//Tools.SaveMapping(commitInfos, MappingSaveLocation);
+
+			return true;
 		}
 
 		//private IDictionary<string, IDictionary<string, string>> getMappingWithTxIdFromLog()
-		private List<GitCommit> getMappingWithTxIdFromLog()
+		private List<VaultTx2GitTx> getMappingWithTxIdFromLog()
 		{
             string[] msgs;
 			//long TxId = 0;
 
             getGitLogs(out msgs);
 
-			List<GitCommit> Commits = GitLogFromXml(msgs);
+			List<VaultTx2GitTx> mapping = GitLogFromXml(msgs);
 
-			var map = Commits.Where(l => l.Comment.Contains(VaultTag)).ToArray();
+			//var map = mapping.Where(l => l.GitCommit.Comment.Contains(VaultTag)).ToArray();
 
-			for (var i = 0; i < map.Length; i++)
-            {
-				getVaultVersionFromGitCommit(map[i], ref map[i].VaultInfo);
-            }
+			//for (var i = 0; i < map.Length; i++)
+			//         {
+			//	getVaultVersionFromGitCommit(map[i], ref map[i].VaultInfo);
+			//         }
 
-			return map.ToList();
+			//return map.ToList();
+			return mapping;
         }
 
 		private string getFullHash(string hash)
@@ -1200,55 +1203,55 @@ namespace Vault2Git.Lib
 
 		private int gitFullHash(string gitHash, out string FullHash)
 		{
-			int ticks = 0;
-			
-			string[] msg;
+            string[] msg;
 
-			ticks = runGitCommand(string.Format(_gitFullHashCmd, gitHash),
+            int ticks = runGitCommand(string.Format(_gitFullHashCmd, gitHash),
 				string.Empty,
 				out msg);
 
-			FullHash = msg[0];
+            FullHash = msg[0];
 
 			return ticks;
 		}
 
-		private List<GitCommit> GitLogFromXml(string[] msg)
+		private List<VaultTx2GitTx> GitLogFromXml(string[] msg)
 		{
 			var reader = new StringReader(string.Join(Environment.NewLine, msg));
-			var gitCommits = new List<GitCommit>();
+			var mappings = new List<VaultTx2GitTx>();
 			var xDoc = XDocument.Load(reader).Root;
 
-			var commits = xDoc.Descendants("c");
+			var elements = xDoc.Descendants("c");
 
-			foreach (XElement c in commits)
+			foreach (XElement e in elements)
 			{
-				var x = new GitCommit();
+				//var x = new VaultTx2GitTx();
 
-				if (c.Descendants("D").FirstOrDefault().Value.Split(',').Any(d => d.Trim() == "replaced"))
+				if (e.Descendants("D").FirstOrDefault().Value.Split(',').Any(d => d.Trim() == "replaced"))
 					continue;
 
+				var commitHash = new GitCommitHash(e.Descendants("H").FirstOrDefault().Value);
+				var comment = e.Descendants("N").FirstOrDefault().Value;
+				var parentCommitHash = e.Descendants("P").FirstOrDefault().Value.Split(' ').Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => new GitCommitHash(l)).ToList();
 
-				x.CommitHash = new GitCommitHash(c.Descendants("H").FirstOrDefault().Value);
-				x.Comment = c.Descendants("N").FirstOrDefault().Value;
-				x.ParentCommitHash = c.Descendants("P").FirstOrDefault().Value.Split(' ').Select(l => new GitCommitHash(l)).ToList();
 
-				if (x.Comment.Contains(VaultTag))
+				//x.CommitHash = new GitCommitHash(e.Descendants("H").FirstOrDefault().Value);
+				//x.Comment = e.Descendants("N").FirstOrDefault().Value;
+				//x.ParentCommitHash = e.Descendants("P").FirstOrDefault().Value.Split(' ').Select(l => new GitCommitHash(l)).ToList();
+				var commit = ConversionState.CreateGitCommit(commitHash, parentCommitHash);
+				commit.Comment = comment;
+
+				if (comment.Contains(VaultTag))
 				{
-					VaultVersionInfo info = new VaultVersionInfo();
-					getVaultVersionFromGitLogMessage(x.Comment, ref info);
-					if (info != x.VaultInfo)
-                    {
-						x.VaultInfo = info;
-                    }
+					VaultTx info = new VaultTx();
+					getVaultVersionFromGitLogMessage(comment, ref info);
+					var x = new VaultTx2GitTx(commit, info);
+					mappings.Add(x);
 				}
-
-				gitCommits.Add(x);
 			}
-			return gitCommits;
+			return mappings;
 		}
 
-		private  bool getVaultVersionFromGitCommit(GitCommit gitCommit, ref VaultVersionInfo info)
+		private  bool getVaultVersionFromGitCommit(GitCommit gitCommit, ref VaultTx info)
         {
 			if (gitCommit.Comment.Contains(VaultTag))
             {

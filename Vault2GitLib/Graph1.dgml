@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph xmlns="http://schemas.microsoft.com/vs/2009/dgml">
+  <Nodes>
+    <Node Id="CommitCommitHash" Category="Comment" Bounds="-43.4227307637533,-377.031742553711,134.01,25.96" Label="Commit CommitHash" UseManualLocation="True" />
+    <Node Id="Dictionary&lt;long,VaultTx&gt;" Bounds="280.164347627591,-201.224150335693,157.026666666667,25.96" Label="Dictionary&lt;long, VaultTx&gt;" UseManualLocation="True" />
+    <Node Id="GitCommit" Bounds="-112.839385209084,-243.229038696289,77.3133333333333,25.96" Label="GitCommit" UseManualLocation="True" />
+    <Node Id="GitCommit1" Bounds="150.154387919108,-176.051742553711,77.3133333333333,25.96" Label="GitCommit" UseManualLocation="True" />
+    <Node Id="GitCommitCollection" Bounds="-229.226120231387,-19.0000004577636,130.2,25.96" UseManualLocation="True" />
+    <Node Id="GitCommitHash" Bounds="-25.3161623880985,-308.189136962891,103.823333333333,25.96" UseManualLocation="True" />
+    <Node Id="GitCommitHashCollection" Bounds="-535.437290649414,-179.739807124837,156.71,25.96" UseManualLocation="True" />
+    <Node Id="HashtableOfGitCommit" Bounds="-171.437284037272,-122.852129614545,147.593333333333,25.96" Label="Hashtable of GitCommit" UseManualLocation="True" />
+    <Node Id="HashtableOfGitCommitHash" Bounds="-540.49285929362,-259.199908801269,174.103333333333,25.96" Label="Hashtable of GitCommitHash" UseManualLocation="True" />
+    <Node Id="Key=CommitHash" Category="Comment" Bounds="-277.126045125326,-184.852129614254,122.286666666667,25.96" Label="Key = CommitHash" UseManualLocation="True" />
+    <Node Id="Key=CommitHash1" Category="Comment" Bounds="-701.21691911648,-261.812229614254,122.286666666667,25.96" Label="Key = CommitHash" UseManualLocation="True" />
+    <Node Id="List&lt;GitCommitHash&gt;" Bounds="-252.276165466309,-324.772329614254,137.96,25.96" UseManualLocation="True" />
+    <Node Id="List&lt;VaultTx2GitTx&gt;" Bounds="68.093620300293,-83.3956270217896,127.023333333333,25.96" Label=" List&lt;VaultTx2GitTx&gt;" UseManualLocation="True" />
+    <Node Id="ListOfParentCommitHashes" Category="Comment" Bounds="-270.496063028971,-385.991842553515,172.073333333333,25.96" Label="List of Parent CommitHashes" UseManualLocation="True" />
+    <Node Id="SourceOfAllCommitHashes" Category="Comment" Bounds="-536.751111043294,-320.031742553711,170.373333333333,25.96" Label="Source of All CommitHashes" UseManualLocation="True" />
+    <Node Id="SourceOfAllVaultTx" Category="Comment" Bounds="287.83474984927,-373.16000793457,127.57,25.96" Label="Source of All VaultTx" UseManualLocation="True" />
+    <Node Id="Vault2GitState" Bounds="61.6000021107992,110.466382447682,94.6233333333333,25.96" UseManualLocation="True" />
+    <Node Id="VaultTx" Bounds="327.164352408678,-286.769862471517,57.1833333333334,25.96" UseManualLocation="True" />
+    <Node Id="VaultTx1" Bounds="62.9710545857748,-179.051742553711,57.1833333333334,25.96" Label="VaultTx" UseManualLocation="True" />
+    <Node Id="VaultTxCollection" Bounds="308.900003051758,-106.895626737005,110.07,25.96" UseManualLocation="True" />
+  </Nodes>
+  <Links>
+    <Link Source="CommitCommitHash" Target="GitCommitHash" Bounds="24.1504040120617,-351.071742553711,1.48341280067312,33.8912143157367" />
+    <Link Source="Dictionary&lt;long,VaultTx&gt;" Target="VaultTx" Bounds="356.506527829842,-251.815106876243,1.72784428101841,50.5909565405494" />
+    <Link Source="GitCommit" Target="GitCommitHash" Bounds="-54.0457185077559,-277.353075200348,52.9395674140424,34.1240365040587" />
+    <Link Source="GitCommit" Target="List&lt;GitCommitHash&gt;" Bounds="-158.718327811366,-293.424689289323,67.1670187881917,50.1956505930341" />
+    <Link Source="GitCommitCollection" Target="GitCommitHashCollection" Bounds="-425.535260467908,-149.450520746616,237.752454086134,130.450520527271" />
+    <Link Source="GitCommitCollection" Target="HashtableOfGitCommit" Bounds="-155.816404147864,-89.3123545219754,45.0135433046531,70.3123543026303" />
+    <Link Source="GitCommitHashCollection" Target="HashtableOfGitCommitHash" Bounds="-456.487495736866,-224.249343585355,2.03955074569865,44.5095398133826" />
+    <Link Source="HashtableOfGitCommit" Target="GitCommit" Bounds="-95.1111990032579,-208.435206011014,16.6776132731516,85.5830822927522" />
+    <Link Source="Key=CommitHash" Target="HashtableOfGitCommit" Bounds="-191.207224750579,-158.892131347656,60.818949197977,31.8633478030188" />
+    <Link Source="Key=CommitHash1" Target="HashtableOfGitCommitHash" Bounds="-578.930244547526,-247.976397428301,29.4382667648576,0.412051728661737" />
+    <Link Source="List&lt;VaultTx2GitTx&gt;" Target="GitCommit1" Bounds="139.619122421095,-142.433710452739,36.4500374532492,59.0380834309495" />
+    <Link Source="List&lt;VaultTx2GitTx&gt;" Target="VaultTx1" Bounds="100.471551079216,-144.789788214428,25.7001836252021,61.3941611926381" />
+    <Link Source="ListOfParentCommitHashes" Target="List&lt;GitCommitHash&gt;" Bounds="-184.212763663525,-360.031856079102,0.498987555339852,26.2611506923555" />
+    <Link Source="SourceOfAllCommitHashes" Target="HashtableOfGitCommitHash" Bounds="-452.763208174563,-294.071742553711,0.798317525017865,25.876113005006" />
+    <Link Source="SourceOfAllVaultTx" Target="VaultTx" Bounds="352.241218585857,-347.20000793457,2.46291428747355,51.4404435322074" />
+    <Link Source="Vault2GitState" Target="GitCommitCollection" Bounds="-128.619872110665,10.8160041790631,210.15740179393,99.6503764361712" />
+    <Link Source="Vault2GitState" Target="List&lt;VaultTx2GitTx&gt;" Bounds="110.431116528527,-48.4966662570736,18.6083241029536,158.963048704756" />
+    <Link Source="Vault2GitState" Target="VaultTxCollection" Bounds="124.140654244138,-75.0975625330512,217.715764348998,185.563944980734" />
+    <Link Source="VaultTxCollection" Target="Dictionary&lt;long,VaultTx&gt;" Bounds="359.901940784779,-166.278096194415,3.30963272376562,59.3824694574099" />
+  </Links>
+  <Categories>
+    <Category Id="Comment" Label="Comment" Description="Represents a user defined comment on the diagram" CanBeDataDriven="True" IsProviderRoot="False" NavigationActionLabel="Comments" />
+  </Categories>
+  <Properties>
+    <Property Id="Bounds" DataType="System.Windows.Rect" />
+    <Property Id="CanBeDataDriven" Label="CanBeDataDriven" Description="CanBeDataDriven" DataType="System.Boolean" />
+    <Property Id="Expression" DataType="System.String" />
+    <Property Id="GroupLabel" DataType="System.String" />
+    <Property Id="IsEnabled" DataType="System.Boolean" />
+    <Property Id="IsProviderRoot" Label="IsProviderRoot" Description="IsProviderRoot" DataType="System.Boolean" />
+    <Property Id="Label" Label="Label" Description="Displayable label of an Annotatable object" DataType="System.String" />
+    <Property Id="NavigationActionLabel" Label="NavigationActionLabel" Description="NavigationActionLabel" DataType="System.String" />
+    <Property Id="TargetType" DataType="System.Type" />
+    <Property Id="UseManualLocation" DataType="System.Boolean" />
+    <Property Id="Value" DataType="System.String" />
+    <Property Id="ValueLabel" DataType="System.String" />
+  </Properties>
+  <Styles>
+    <Style TargetType="Node" GroupLabel="Comment" ValueLabel="Has comment">
+      <Condition Expression="HasCategory('Comment')" />
+      <Setter Property="Background" Value="#FFFFFACD" />
+      <Setter Property="Stroke" Value="#FFE5C365" />
+      <Setter Property="StrokeThickness" Value="1" />
+      <Setter Property="NodeRadius" Value="2" />
+      <Setter Property="MaxWidth" Value="250" />
+    </Style>
+  </Styles>
+</DirectedGraph>

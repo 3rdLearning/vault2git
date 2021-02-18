@@ -15,7 +15,7 @@ namespace Vault2Git.Lib
             private string _comment;
 
             // TODO: Implement Correctly - only here to resolve error
-            public string Comment { get => _comment; }
+            public string Comment { get => _comment; set => _comment = value; }
 
             public GitCommit(GitCommitHash gitCommitHash, List<GitCommitHash> gitParentCommitHashes)
             {
@@ -23,11 +23,25 @@ namespace Vault2Git.Lib
                 _gitParentCommitHashes = gitParentCommitHashes;
             }
 
-
             public bool AddParent(GitCommitHash gitCommitHash)
             {
-                throw new NotImplementedException();
+                if (!_gitParentCommitHashes.Contains(gitCommitHash))
+                {
+                    _gitParentCommitHashes.Add(gitCommitHash);
+                }
+                return true;
             }
+
+            public GitCommitHash GetHash()
+            {
+                return _gitCommitHash;
+            }
+
+            public List<GitCommitHash> GetParentHashes()
+            {
+                return _gitParentCommitHashes;
+            }
+
         }
     }
 }

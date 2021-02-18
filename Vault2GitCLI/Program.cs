@@ -63,8 +63,8 @@ namespace Vault2Git.CLI
 					else if (o.StartsWith(_limitParam))
 					{
 						var l = o.Substring(_limitParam.Length);
-						var max = 0;
-						if (int.TryParse(l, out max))
+                        int max;
+                        if (int.TryParse(l, out max))
 							p.Limit = max;
 						else
 							errors.Add(string.Format("Incorrect limit ({0}). Use integer.", l));
@@ -147,10 +147,10 @@ namespace Vault2Git.CLI
                 RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2030-12-31",
                 MappingSaveLocation = ConfigurationManager.AppSettings["MappingSaveLocation"],
                 AuthorMapPath = ConfigurationManager.AppSettings["CustomMapPath"] ?? "c:\\temp\\mapfile.xml",
-				GitCommitMessageTempFile = ConfigurationManager.AppSettings["GitCommitMessageTempFile"] ?? "c:\\temp\\commitmessage.tmp",
-				Progress = ShowProgress,
-				SkipEmptyCommits = param.SkipEmptyCommits
-			};
+                GitCommitMessageTempFile = ConfigurationManager.AppSettings["GitCommitMessageTempFile"] ?? "c:\\temp\\commitmessage.tmp",
+                Progress = ShowProgress,
+                SkipEmptyCommits = param.SkipEmptyCommits
+            };
 
             if (_buildGraft)
             {
@@ -162,14 +162,14 @@ namespace Vault2Git.CLI
                     (
                         param.Branches
                         , 0 == param.Limit ? 999999999 : param.Limit
-						, _ignoreLabels
+               , _ignoreLabels
                     );
 
                 if (!_ignoreLabels)
                     processor.CreateTagsFromLabels();
             }
 #if DEBUG
-			Console.WriteLine("Press ENTER");
+            Console.WriteLine("Press ENTER");
 			Console.ReadLine();
 #endif
 		}
@@ -177,20 +177,20 @@ namespace Vault2Git.CLI
 		static bool ShowProgress(long currentVersion, long totalVersion, int ticks)
 		{
 			var timeSpan = TimeSpan.FromMilliseconds(ticks);
-			if (_useConsole)
-			{
+			//if (_useConsole)
+			//{
 
-				if (Processor.ProgressSpecialVersionInit == currentVersion)
-					Console.WriteLine("init took {0}", timeSpan);
-				else if (Processor.ProgressSpecialVersionGc == currentVersion)
-					Console.WriteLine("gc took {0}", timeSpan);
-				else if (Processor.ProgressSpecialVersionFinalize == currentVersion)
-					Console.WriteLine("finalization took {0}", timeSpan);
-				else if (Processor.ProgressSpecialVersionTags == currentVersion)
-					Console.WriteLine("tags creation took {0}", timeSpan);
-				else
-					Console.WriteLine("processing version {0}/{2} took {1}", currentVersion, timeSpan, totalVersion);
-			}
+			//	if (Processor.ProgressSpecialVersionInit == currentVersion)
+			//		Console.WriteLine("init took {0}", timeSpan);
+			//	else if (Processor.ProgressSpecialVersionGc == currentVersion)
+			//		Console.WriteLine("gc took {0}", timeSpan);
+			//	else if (Processor.ProgressSpecialVersionFinalize == currentVersion)
+			//		Console.WriteLine("finalization took {0}", timeSpan);
+			//	else if (Processor.ProgressSpecialVersionTags == currentVersion)
+			//		Console.WriteLine("tags creation took {0}", timeSpan);
+			//	else
+			//		Console.WriteLine("processing version {0}/{2} took {1}", currentVersion, timeSpan, totalVersion);
+			//}
 
 			return _useCapsLock && Console.CapsLock; //cancel flag
 		}

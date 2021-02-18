@@ -9,7 +9,7 @@ namespace Vault2Git.Lib
 {
     public partial class Vault2GitState
     {
-        private class GitCommitCollection
+        internal class GitCommitCollection
         {
             private GitCommitHashCollection _gitCommitHashes;
             private Hashtable _gitCommits;
@@ -24,7 +24,7 @@ namespace Vault2Git.Lib
             {
                 get
                 {
-                    return (_gitCommits[commitHash] as GitCommit);
+                    return (_gitCommits[commitHash] ?? null) as GitCommit;
                 }
             }
 
@@ -33,7 +33,12 @@ namespace Vault2Git.Lib
                 return this[commitHash] ?? AddCommitToCollection(commitHash);
             }
 
-            public GitCommit AddCommitHash(byte[] commitHashBytes)
+            private GitCommit AddCommit(GitCommitHash gitCommitHash)
+            {
+                return AddCommit(gitCommitHash.ToString());
+            }
+
+            public GitCommit AddCommit(byte[] commitHashBytes)
             {
                 string commitHash = CommitHashBytesToString(commitHashBytes);
                 return this[commitHash] ?? AddCommitToCollection(commitHash);
@@ -41,8 +46,9 @@ namespace Vault2Git.Lib
 
             private GitCommit AddCommitToCollection(string commitHash)
             {
-                _gitCommits[commitHash] = GitCommitHash.Create(commitHash);
-                return this[commitHash];
+                GitCommitHash gitCommitHash = _gitCommitHashes.AddCommitHash(commitHash);
+                _gitCommits[commitHash] = new GitCommit(gitCommitHash, new List<GitCommitHash>());
+                return _gitCommits[commitHash] as GitCommit;
             }
 
             internal GitCommit Add(string commitHash)
@@ -53,7 +59,7 @@ namespace Vault2Git.Lib
             private GitCommit AddCommitToCollection(byte[] commitHashBytes)
             {
                 string commitHash = CommitHashBytesToString(commitHashBytes);
-                _gitCommits[commitHash] = GitCommitHash.Create(commitHashBytes);
+                _gitCommits[commitHash] = new GitCommitHash(commitHashBytes);
 
                 return this[commitHash];
             }

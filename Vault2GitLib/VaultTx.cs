@@ -22,7 +22,7 @@ namespace Vault2Git.Lib
             private string _login;
             private string _mergedFrom;
             private VaultLib.VaultDateTime _timeStamp;
-            private long txId;
+//            private long txId;
 
 
             public long TxId => _txId;
@@ -34,7 +34,7 @@ namespace Vault2Git.Lib
             public string MergedFrom { get => _mergedFrom; set => _mergedFrom = value; }
             public VaultDateTime TimeStamp { get => _timeStamp; set => _timeStamp = value; }
 
-            private VaultTx(long txId, string branch)
+            public VaultTx(long txId, string branch)
             {
                 _branch = branch;
                 _txId = txId;

@@ -9,19 +9,19 @@ namespace Vault2Git.Lib
 {
     public partial class Vault2GitState
     {
-        private class VaultTxCollection
+        internal class VaultTxCollection
         {
-            private Dictionary<long, VaultTx> _vaultTx;
+            private SortedDictionary<long, VaultTx> _vaultTx;
 
             public VaultTxCollection()
             {
-                _vaultTx = new Dictionary<long, VaultTx>();
+                _vaultTx = new SortedDictionary<long, VaultTx>();
             }
             public VaultTx this[long txId]
             {
                 get
                 {
-                    return _vaultTx[txId];
+                    return _vaultTx.ContainsKey(txId) ? _vaultTx[txId] : null;
                 }
             }
 
@@ -31,11 +31,10 @@ namespace Vault2Git.Lib
                 return this[txId];
             }
 
-            internal SortedList<long, VaultTx> getVaultTxAfter(long latestTxId)
+            internal SortedDictionary<long, VaultTx> getVaultTxAfter(long latestTxId)
             {
-                VaultTx LatestTx = _vaultTx[latestTxId];
-
-                return LatestTx != null ? (_vaultTx.Where(p => p.Key.CompareTo(LatestTx.TxId) > 0) as SortedList<long, VaultTx>): (_vaultTx.AsEnumerable() as SortedList<long, VaultTx>);
+                //VaultTx LatestTx = _vaultTx[latestTxId];
+                return new SortedDictionary<long, VaultTx>(_vaultTx.Where(p => p.Value.TxId > latestTxId).ToDictionary(p => p.Key, p => p.Value));
 
                 // (LatestTx. != null) ? vaultVersions.Where(p =>
                 //    (p.Key.CompareTo(gitProgress.FirstOrDefault().Value.TimeStamp.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss.fff") + ":"
@@ -43,5 +42,6 @@ namespace Vault2Git.Lib
                 //throw new NotImplementedException();
             }
         }
+
     }
 }
