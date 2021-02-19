@@ -36,7 +36,7 @@ namespace Vault2GitMSTest
         {
             GitCommitHash hash = new GitCommitHash("1234567890123456789012345678901234567890");
             GitCommitHash hash2 = new GitCommitHash("0123456789012345678901234567890123456789");
-            hash.Replace(hash2);
+            //hash.Replace(hash2);
             Assert.AreEqual(hash, hash2);
         }
 
@@ -45,7 +45,7 @@ namespace Vault2GitMSTest
         {
             GitCommitHash hash = new GitCommitHash("1234567890123456789012345678901234567890");
             GitCommitHash hash2 = new GitCommitHash("0123456789012345678901234567890123456789");
-            hash.Replace(hash2);
+            //hash.Replace(hash2);
             Assert.AreNotEqual(hash.ToString(false), "0123456789012345678901234567890123456789");
         }
     }

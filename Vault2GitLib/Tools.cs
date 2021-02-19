@@ -144,7 +144,7 @@ namespace Vault2Git.Lib
                 File.Copy(source, dest);
         }
 
-        public static void ParseMapFile(string path)
+        public static (Dictionary<string, String>, Dictionary<string,string>) ParseMapFile(string path)
         {
 
             if (File.Exists(path))
@@ -166,10 +166,11 @@ namespace Vault2Git.Lib
                 {
                     string vaultname = element.Attributes["vaultname"].Value;
                     string gitname = element.Attributes["name"].Value;
-
-                    branches.Add(vaultname.ToLower(), gitname);
+                    
+					branches.Add(vaultname.ToLower(), gitname);
                 }
             }
+			return (branches, authors);
         }
 
         public static string GetGitAuthor(string vault_user)
@@ -178,10 +179,10 @@ namespace Vault2Git.Lib
             return authors.ContainsKey(vault_user) ? authors[vault_user] : null;
         }
 
-        public static string GetBranchMapping(string branch_name)
-        {
-            branch_name = branch_name.ToLower().Replace(" ", string.Empty);
-            return branches.ContainsKey(branch_name) ? branches[branch_name] : branch_name;
-        }
+        //public static string GetBranchMapping(string branch_name)
+        //{
+        //    branch_name = branch_name.ToLower().Replace(" ", string.Empty);
+        //    return branches.ContainsKey(branch_name) ? branches[branch_name] : branch_name;
+        //}
     }
 }

@@ -31,15 +31,19 @@ namespace Vault2Git.Lib
         /// An object containing the current mapping from vault transaction to git commit hash
         /// </summary>
         //private List<VaultTx2GitTx> _vaultTx2GitTx;
-
         private Dictionary<string, VaultTx2GitTx> _branchMapping;
-        
+
+        private Dictionary<string, string> _renamedbranches;
+        private Dictionary<string, string> _authors;
+
         public Vault2GitState()
         {
             _gitCommits = new GitCommitCollection();
             _vaultTxs = new VaultTxCollection();
             _vaultTx2GitTxs = new VaultTx2GitTxCollection(_gitCommits, _vaultTxs);
             _branchMapping = new Dictionary<string, VaultTx2GitTx>();
+            _renamedbranches = new Dictionary<string, string>();
+            _authors = new Dictionary<string, string>();
         }
 
         internal GitCommit CreateGitCommit(string commitHash)
@@ -48,8 +52,15 @@ namespace Vault2Git.Lib
 
             return gitGommit;
         }
+        internal GitCommit CreateGitCommit(string commitHash, List<string> parentCommitHashes)
+        {
+            GitCommitHash gitCommitHash = new GitCommitHash(commitHash);
+            List<GitCommitHash> parentGitCommitHashes = parentCommitHashes.Where(l => !string.IsNullOrEmpty(l)).Select(l => new GitCommitHash(l)).ToList();
 
-        internal GitCommit CreateGitCommit(GitCommitHash gitCommitHash, List<GitCommitHash> parentCommitHashes)
+            return CreateGitCommit(gitCommitHash, parentGitCommitHashes);
+        }
+
+        private GitCommit CreateGitCommit(GitCommitHash gitCommitHash, List<GitCommitHash> parentCommitHashes)
         {
             GitCommit gitGommit = _gitCommits[gitCommitHash.ToString()] ?? _gitCommits.AddCommit(gitCommitHash.ToString());
 
@@ -93,6 +104,7 @@ namespace Vault2Git.Lib
         {
             return _vaultTxs.getVaultTxAfter(latestTxId);
         }
+
         internal VaultTx2GitTx GetMapping(VaultTx info)
         {
             return _vaultTx2GitTxs.GetMapping(info);
@@ -100,22 +112,22 @@ namespace Vault2Git.Lib
 
         public VaultTx2GitTx GetLastBranchMapping(string branchName)
         {
-            if (_branchMapping.TryGetValue(branchName, out VaultTx2GitTx entry))
+            string updatedBranchName = GetBranchName(branchName);
+
+            if (_branchMapping.TryGetValue(updatedBranchName, out VaultTx2GitTx entry))
             {
                 return entry;
             }   
             else
             {
-                Console.WriteLine($"Missing an entry for branch {branchName}, Defaulting to \"master\"");
-                return _branchMapping["master"];
+                Console.WriteLine($"Missing an entry for branch {updatedBranchName}, Defaulting to {DEFAULT_BRANCH}");
+                return _branchMapping[DEFAULT_BRANCH];
             }
-            
         }
 
         public void SaveMapping(string fileName)
         {
             Dictionary2Xml(_vaultTx2GitTxs.GetMappingDictionary()).Save(fileName);
-            //Dictionary2Xml(_vaultTx2GitTx.ToDictionary(a => a.TxId, a => a)).Save(fileName);
         }
 
         public static XElement Dictionary2Xml<TKey, TValue>(IDictionary<TKey, TValue> input)
@@ -162,6 +174,31 @@ namespace Vault2Git.Lib
             {
                 CreateMapping(entry.GitCommit, entry.VaultTx);
             }
+        }
+
+        internal GitCommitHash ReplaceCommitHash(GitCommitHash sourceGitCommitHash, GitCommitHash replacementCommitHash)
+        {
+            return _gitCommits.ReplaceCommitHash(sourceGitCommitHash, replacementCommitHash);
+        }
+
+        public void AddAuthors(Dictionary<string, string> authors)
+        {
+            _authors = _authors.Union(authors).ToDictionary(d => d.Key, d => d.Value);
+        }
+
+        public void AddRenamedBranches(Dictionary<string, string> branches)
+        {
+            _renamedbranches = _renamedbranches.Union(branches).ToDictionary(d => d.Key, d => d.Value);
+        }
+
+        public string GetBranchName(string branchName)
+        {
+            branchName = branchName.ToLower().Replace(" ", string.Empty);
+            if (_renamedbranches.TryGetValue(branchName, out string renamedBranchName))
+            {
+                return renamedBranchName;
+            }
+            return branchName;
         }
     }
 }

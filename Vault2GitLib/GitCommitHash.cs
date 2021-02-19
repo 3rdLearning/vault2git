@@ -57,7 +57,7 @@ namespace Vault2Git.Lib
             /// </remarks>
             /// <param name="replacement">The new GitCommitHash</param>
             /// <returns>A reference to the original GitCommitHash</returns>
-            public GitCommitHash Replace(GitCommitHash replacement)
+            internal GitCommitHash Replace(GitCommitHash replacement)
             {
                 _replacement = replacement;
                 return this;
@@ -138,15 +138,6 @@ namespace Vault2Git.Lib
                     return false;
 
                 return (this.ToString() == other.ToString());
-                //if (Object.ReferenceEquals(_replacement, this))
-                //{
-                //    return (this.ToString() == other.ToString());
-                //}
-                //else
-                //{
-                //    return (this.ToString() == other.ToString() || ((IEquatable<GitCommitHash>)_replacement).Equals(other));
-                //}
-
             }
 
 

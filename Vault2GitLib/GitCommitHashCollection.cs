@@ -11,6 +11,9 @@ namespace Vault2Git.Lib
     {
         public class GitCommitHashCollection
         {
+            /// <summary>
+            /// A collection git Commit Hashes
+            /// </summary>
             private Hashtable _gitCommitHashes;
 
             public GitCommitHashCollection()
@@ -56,6 +59,12 @@ namespace Vault2Git.Lib
             private GitCommitHash AddCommitHashToCollection(string commitHash)
             {
                 return AddCommitHashToCollection(new GitCommitHash(commitHash), commitHash);
+            }
+
+            internal GitCommitHash ReplaceCommitHash(GitCommitHash sourceGitCommitHash, GitCommitHash replacementCommitHash)
+            {
+                GitCommitHash replacementGitCommitHash = AddCommitHash(replacementCommitHash);
+                return (_gitCommitHashes[sourceGitCommitHash.ToString()] as GitCommitHash).Replace(replacementCommitHash);
             }
 
             private GitCommitHash AddCommitHashToCollection(byte[] commitHashBytes)

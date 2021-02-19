@@ -42,6 +42,5 @@ namespace Vault2Git.Lib
                 //throw new NotImplementedException();
             }
         }
-
     }
 }

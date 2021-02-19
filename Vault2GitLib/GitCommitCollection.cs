@@ -56,6 +56,11 @@ namespace Vault2Git.Lib
                 throw new NotImplementedException();
             }
 
+            internal GitCommitHash ReplaceCommitHash(GitCommitHash sourceGitCommitHash, GitCommitHash replacementCommitHash)
+            {
+                return _gitCommitHashes.ReplaceCommitHash(sourceGitCommitHash, replacementCommitHash);
+            }
+
             private GitCommit AddCommitToCollection(byte[] commitHashBytes)
             {
                 string commitHash = CommitHashBytesToString(commitHashBytes);

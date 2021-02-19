@@ -133,7 +133,7 @@ namespace Vault2Git.CLI
 				Console.Error.WriteLine($"Configuration MappingSaveLocation is not defined into application' settings. Please set a valid value.");
 			}
 
-            var processor = new Vault2Git.Lib.Processor()
+            var processor = new Vault2Git.Lib.New.Processor()
             {
                 WorkingFolder = ConfigurationManager.AppSettings["Convertor.WorkingFolder"],
                 GitCmd = ConfigurationManager.AppSettings["Convertor.GitCmd"],
@@ -146,7 +146,7 @@ namespace Vault2Git.CLI
                 RevisionStartDate = ConfigurationManager.AppSettings["RevisionStartDate"] ?? "2005-01-01",
                 RevisionEndDate = ConfigurationManager.AppSettings["RevisionEndDate"] ?? "2030-12-31",
                 MappingSaveLocation = ConfigurationManager.AppSettings["MappingSaveLocation"],
-                AuthorMapPath = ConfigurationManager.AppSettings["CustomMapPath"] ?? "c:\\temp\\mapfile.xml",
+                MappingFilePath = ConfigurationManager.AppSettings["CustomMapPath"] ?? "c:\\temp\\mapfile.xml",
                 GitCommitMessageTempFile = ConfigurationManager.AppSettings["GitCommitMessageTempFile"] ?? "c:\\temp\\commitmessage.tmp",
                 Progress = ShowProgress,
                 SkipEmptyCommits = param.SkipEmptyCommits

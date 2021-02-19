@@ -8,7 +8,7 @@ namespace Vault2GitMSTest
     {
         string hash1 = "1234567890123456789012345678901234567890";
         string hash2 = "0123456789012345678901234567890123456789";
-        string hash3 = "9012345678901234567890123456789012345678";
+        //string hash3 = "9012345678901234567890123456789012345678";
 
         [TestMethod]
         public void CommitHashCollectionShouldReturnSameHash()
