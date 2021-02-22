@@ -2,11 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using System.Xml.Serialization;
 
 namespace Vault2Git.Lib
 {
@@ -116,7 +113,7 @@ namespace Vault2Git.Lib
             if (_branchMapping.TryGetValue(updatedBranchName, out VaultTx2GitTx entry))
             {
                 return entry;
-            }   
+            }
             else
             {
                 Console.WriteLine($"Missing an entry for branch {updatedBranchName}, Defaulting to {DEFAULT_BRANCH}");
@@ -130,7 +127,8 @@ namespace Vault2Git.Lib
             {
                 using (var writer = new System.IO.StreamWriter(ms))
                 {
-                    var xmlSettings = new XmlWriterSettings {
+                    var xmlSettings = new XmlWriterSettings
+                    {
                         Indent = true
                     };
 
