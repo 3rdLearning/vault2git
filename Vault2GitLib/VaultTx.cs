@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 using VaultLib;
 
 namespace Vault2Git.Lib
@@ -12,8 +14,6 @@ namespace Vault2Git.Lib
     {
         public class VaultTx
         {
-            //private const string DEFAULT_BRANCH = "master";
-            
             private long _txId;
             private string _branch;
             private string _path;
@@ -22,8 +22,6 @@ namespace Vault2Git.Lib
             private string _login;
             private string _mergedFrom;
             private VaultLib.VaultDateTime _timeStamp;
-//            private long txId;
-
 
             public long TxId => _txId;
             public string Branch => _branch;
@@ -64,11 +62,6 @@ namespace Vault2Git.Lib
             public static VaultTx Create(long txId, string branch = DEFAULT_BRANCH)
             {
                 return new VaultTx(txId, branch);
-            }
-
-            public static VaultTx Parse(string key)
-            {
-                return new VaultTx(long.Parse(key.Split(':')[1]), key.Split(':')[0].ToString());
             }
 
             public override bool Equals(object obj)

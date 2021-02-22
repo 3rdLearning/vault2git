@@ -10,11 +10,10 @@ namespace Vault2Git.Lib
     {
         public class GitCommit
         {
-            private GitCommitHash _gitCommitHash;
+            private readonly GitCommitHash _gitCommitHash;
             private List<GitCommitHash> _gitParentCommitHashes;
             private string _comment;
 
-            // TODO: Implement Correctly - only here to resolve error
             public string Comment { get => _comment; set => _comment = value; }
 
             public GitCommit(GitCommitHash gitCommitHash, List<GitCommitHash> gitParentCommitHashes)

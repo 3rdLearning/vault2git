@@ -4,7 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Serialization;
 
 namespace Vault2Git.Lib
 {
@@ -27,10 +29,7 @@ namespace Vault2Git.Lib
         /// </summary>
         private VaultTx2GitTxCollection _vaultTx2GitTxs;
 
-        /// <summary>
-        /// An object containing the current mapping from vault transaction to git commit hash
-        /// </summary>
-        //private List<VaultTx2GitTx> _vaultTx2GitTx;
+
         private Dictionary<string, VaultTx2GitTx> _branchMapping;
 
         private Dictionary<string, string> _renamedbranches;
@@ -46,12 +45,12 @@ namespace Vault2Git.Lib
             _authors = new Dictionary<string, string>();
         }
 
-        internal GitCommit CreateGitCommit(string commitHash)
-        {
-            GitCommit gitGommit = _gitCommits[commitHash] ?? _gitCommits.AddCommit(commitHash);
+        //internal GitCommit CreateGitCommit(string commitHash)
+        //{
+        //    GitCommit gitGommit = _gitCommits[commitHash] ?? _gitCommits.AddCommit(commitHash);
 
-            return gitGommit;
-        }
+        //    return gitGommit;
+        //}
         internal GitCommit CreateGitCommit(string commitHash, List<string> parentCommitHashes)
         {
             GitCommitHash gitCommitHash = new GitCommitHash(commitHash);
@@ -105,10 +104,10 @@ namespace Vault2Git.Lib
             return _vaultTxs.getVaultTxAfter(latestTxId);
         }
 
-        internal VaultTx2GitTx GetMapping(VaultTx info)
-        {
-            return _vaultTx2GitTxs.GetMapping(info);
-        }
+        //internal VaultTx2GitTx GetMapping(VaultTx info)
+        //{
+        //    return _vaultTx2GitTxs.GetMapping(info);
+        //}
 
         public VaultTx2GitTx GetLastBranchMapping(string branchName)
         {
@@ -125,9 +124,24 @@ namespace Vault2Git.Lib
             }
         }
 
-        public void SaveMapping(string fileName)
+        public void Save(string fileName)
         {
-            Dictionary2Xml(_vaultTx2GitTxs.GetMappingDictionary()).Save(fileName);
+            using (var ms = new MemoryStream())
+            {
+                using (var writer = new System.IO.StreamWriter(ms))
+                {
+                    var xmlSettings = new XmlWriterSettings {
+                        Indent = true
+                    };
+
+                    using (var xmlWriter = XmlWriter.Create(writer, xmlSettings))
+                    {
+                        _vaultTx2GitTxs.Mapping2Xml(xmlWriter);
+                    }
+                    writer.Flush();
+                    File.WriteAllBytes(fileName, ms.ToArray());
+                }
+            }
         }
 
         public static XElement Dictionary2Xml<TKey, TValue>(IDictionary<TKey, TValue> input)
@@ -136,35 +150,6 @@ namespace Vault2Git.Lib
                 new XAttribute("valueType", typeof(TValue).FullName),
                 input.Select(kp => new XElement("entry", new XAttribute("key", kp.Key), kp.Value)));
         }
-
-        //internal bool BuildVaultTx2GitCommitFromXML(string saveFileName)
-        //{
-        //    if (!File.Exists(saveFileName))
-        //        throw new FileNotFoundException("File not found");
-        //    try
-        //    {
-        //        _vaultTx2GitTxs = new VaultTx2GitTxCollection(_gitCommits, _vaultTxs);
-
-        //        //var a = XElement2Dictionnary(XDocument.Load(saveFileName).Root).ToDictionary(kp => kp.Key, kp => kp.Value).Values;// ?? new Dictionary<long, VaultTx2GitTx>();
-        //        var elements = XDocument.Load(saveFileName).Root.Descendants("entry").ToList();
-        //        foreach (XElement xe in elements)
-        //        {
-        //            VaultTx2GitTx entry = VaultTx2GitTx.parse(xe);
-        //            CreateMapping(entry.GitCommit, entry.VaultTx);
-        //        }
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        throw new InvalidDataException("XML data not valid", e);
-        //    }
-        //    return true;
-        //}
-
-        //private static Dictionary<long, VaultTx2GitTx> XElement2Dictionnary(XElement source)
-        //{
-        //    return source.Descendants("entry").ToDictionary(xe => long.Parse(xe.Attribute("TxId").Value), xe => VaultTx2GitTx.parse(xe));
-        //}
-
 
         public void BuildVaultTx2GitCommitFromList(List<VaultTx2GitTx> mapping)
         {
@@ -199,6 +184,12 @@ namespace Vault2Git.Lib
                 return renamedBranchName;
             }
             return branchName;
+        }
+
+        public string GetGitAuthor(string vaultUser)
+        {
+            vaultUser = vaultUser.ToLower();
+            return _authors.ContainsKey(vaultUser) ? _authors[vaultUser] : null;
         }
     }
 }

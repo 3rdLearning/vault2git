@@ -33,13 +33,7 @@ namespace Vault2Git.Lib
 
             internal SortedDictionary<long, VaultTx> getVaultTxAfter(long latestTxId)
             {
-                //VaultTx LatestTx = _vaultTx[latestTxId];
                 return new SortedDictionary<long, VaultTx>(_vaultTx.Where(p => p.Value.TxId > latestTxId).ToDictionary(p => p.Key, p => p.Value));
-
-                // (LatestTx. != null) ? vaultVersions.Where(p =>
-                //    (p.Key.CompareTo(gitProgress.FirstOrDefault().Value.TimeStamp.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss.fff") + ":"
-                //    + gitProgress.FirstOrDefault().Value.Branch + ':' + gitProgress.FirstOrDefault().Value.TxId.ToString()) > 0)) : vaultVersions;
-                //throw new NotImplementedException();
             }
         }
     }

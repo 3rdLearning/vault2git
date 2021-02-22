@@ -33,16 +33,16 @@ namespace Vault2Git.Lib
                 return this[commitHash] ?? AddCommitToCollection(commitHash);
             }
 
-            private GitCommit AddCommit(GitCommitHash gitCommitHash)
-            {
-                return AddCommit(gitCommitHash.ToString());
-            }
+            //private GitCommit AddCommit(GitCommitHash gitCommitHash)
+            //{
+            //    return AddCommit(gitCommitHash.ToString());
+            //}
 
-            public GitCommit AddCommit(byte[] commitHashBytes)
-            {
-                string commitHash = CommitHashBytesToString(commitHashBytes);
-                return this[commitHash] ?? AddCommitToCollection(commitHash);
-            }
+            //public GitCommit AddCommit(byte[] commitHashBytes)
+            //{
+            //    string commitHash = CommitHashBytesToString(commitHashBytes);
+            //    return this[commitHash] ?? AddCommitToCollection(commitHash);
+            //}
 
             private GitCommit AddCommitToCollection(string commitHash)
             {
@@ -51,28 +51,28 @@ namespace Vault2Git.Lib
                 return _gitCommits[commitHash] as GitCommit;
             }
 
-            internal GitCommit Add(string commitHash)
-            {
-                throw new NotImplementedException();
-            }
+            //internal GitCommit Add(string commitHash)
+            //{
+            //    throw new NotImplementedException();
+            //}
 
             internal GitCommitHash ReplaceCommitHash(GitCommitHash sourceGitCommitHash, GitCommitHash replacementCommitHash)
             {
                 return _gitCommitHashes.ReplaceCommitHash(sourceGitCommitHash, replacementCommitHash);
             }
 
-            private GitCommit AddCommitToCollection(byte[] commitHashBytes)
-            {
-                string commitHash = CommitHashBytesToString(commitHashBytes);
-                _gitCommits[commitHash] = new GitCommitHash(commitHashBytes);
+            //private GitCommit AddCommitToCollection(byte[] commitHashBytes)
+            //{
+            //    string commitHash = CommitHashBytesToString(commitHashBytes);
+            //    _gitCommits[commitHash] = new GitCommitHash(commitHashBytes);
 
-                return this[commitHash];
-            }
+            //    return this[commitHash];
+            //}
 
-            private string CommitHashBytesToString(byte[] commitHashBytes)
-            {
-                return BitConverter.ToString(commitHashBytes).Replace("-", string.Empty);
-            }
+            //private string CommitHashBytesToString(byte[] commitHashBytes)
+            //{
+            //    return BitConverter.ToString(commitHashBytes).Replace("-", string.Empty);
+            //}
         }
 
     }

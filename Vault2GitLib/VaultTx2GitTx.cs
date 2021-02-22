@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
 namespace Vault2Git.Lib
 {
@@ -20,12 +23,6 @@ namespace Vault2Git.Lib
                 _vaultTx = vaultTx;
             }
 
-            //public VaultTx2GitTx(GitCommit gitCommit, VaultTx vaultTx)
-            //{
-            //    _gitCommit = gitCommit;
-            //    _vaultTx = vaultTx;
-            //}
-
             public VaultTx VaultTx { get => _vaultTx; }
 
             public GitCommit GitCommit { get => _gitCommit; }
@@ -34,24 +31,6 @@ namespace Vault2Git.Lib
 
             public long TxId { get => _vaultTx.TxId; }
 
-            public VaultTx2GitTx()
-            {
-            }
-
-            //public VaultTx2GitTx(string gitHash, VaultVersionInfo info)
-            //{
-            //    _gitHash = new GitCommitHash(gitHash);
-            //    _vaultTx = new VaultTx(info);
-            //}
-
-            public static VaultTx2GitTx parse(XElement xe)
-            {
-                throw new NotImplementedException("Need to create actual commits in Vault2GitState");
-
-                // TODO: This needs to create 
-                //return new VaultTx2GitTx(xe.Attribute("GitCommit").Value, new VaultTx(1)) ; //(long.Parse(xe.Attribute("TxId").Value), xe.Attribute("Branch").Value));
-                //return new VaultTx2GitTx();// xe.Attribute("GitCommit").Value, new VaultTx(1)); //(long.Parse(xe.Attribute("TxId").Value), xe.Attribute("Branch").Value));
-            }
 
             public override bool Equals(object obj)
             {
@@ -67,7 +46,6 @@ namespace Vault2Git.Lib
                 hashCode = hashCode * -1521134295 + EqualityComparer<GitCommit>.Default.GetHashCode(_gitCommit);
                 return hashCode;
             }
-
-		}
+        }
     }
 }
