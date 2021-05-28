@@ -21,13 +21,18 @@ namespace Vault2Git.Lib
                 }
             }
 
-            internal VaultTx Add(long txId, string branchName = DEFAULT_BRANCH)
+            private VaultTx AddCommitToCollection(VaultTx vaultTx)
             {
-                _vaultTx[txId] = VaultTx.Create(txId, branchName);
-                return this[txId];
+                _vaultTx[vaultTx.TxId] = vaultTx;
+                return _vaultTx[vaultTx.TxId];
             }
 
-            internal SortedDictionary<long, VaultTx> getVaultTxAfter(long latestTxId)
+            internal VaultTx Add(long txId, string branchName = DEFAULT_BRANCH)
+            {
+                return this[txId] ?? AddCommitToCollection(VaultTx.Create(txId, branchName));
+            }
+
+            internal SortedDictionary<long, VaultTx> GetVaultTxAfter(long latestTxId)
             {
                 return new SortedDictionary<long, VaultTx>(_vaultTx.Where(p => p.Value.TxId > latestTxId).ToDictionary(p => p.Key, p => p.Value));
             }

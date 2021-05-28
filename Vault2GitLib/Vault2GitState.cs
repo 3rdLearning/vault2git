@@ -4,6 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+using GitLib;
+using GitLib.Interfaces;
+using VaultClientIntegrationLib;
+using VaultClientOperationsLib;
+using VaultLib;
 
 namespace Vault2Git.Lib
 {
@@ -14,7 +19,7 @@ namespace Vault2Git.Lib
         /// <summary>
         /// An object to manage references to all commits
         /// </summary>
-        private GitCommitCollection _gitCommits;
+        private IGitCommitCollection _gitCommits;
 
         /// <summary>
         /// An object to manage all transactions
@@ -32,37 +37,34 @@ namespace Vault2Git.Lib
         private Dictionary<string, string> _renamedbranches;
         private Dictionary<string, string> _authors;
 
+        public string RevisionEndDate { get; set; }
+        public string RevisionStartDate { get; set; }
+
         public Vault2GitState()
         {
             _gitCommits = new GitCommitCollection();
             _vaultTxs = new VaultTxCollection();
-            _vaultTx2GitTxs = new VaultTx2GitTxCollection(_gitCommits, _vaultTxs);
+            _vaultTx2GitTxs = new VaultTx2GitTxCollection();//_gitCommits, _vaultTxs);
             _branchMapping = new Dictionary<string, VaultTx2GitTx>();
             _renamedbranches = new Dictionary<string, string>();
             _authors = new Dictionary<string, string>();
         }
 
-        //internal GitCommit CreateGitCommit(string commitHash)
-        //{
-        //    GitCommit gitGommit = _gitCommits[commitHash] ?? _gitCommits.AddCommit(commitHash);
-
-        //    return gitGommit;
-        //}
-        internal GitCommit CreateGitCommit(string commitHash, List<string> parentCommitHashes)
+        internal IGitCommit CreateGitCommit(string commitHash, List<string> parentCommitHashes)
         {
-            GitCommitHash gitCommitHash = new GitCommitHash(commitHash);
-            List<GitCommitHash> parentGitCommitHashes = parentCommitHashes.Where(l => !string.IsNullOrEmpty(l)).Select(l => new GitCommitHash(l)).ToList();
+            IGitCommitHash gitCommitHash = new GitCommitHash(commitHash);
+            List<IGitCommitHash> parentGitCommitHashes = parentCommitHashes.Where(l => !string.IsNullOrEmpty(l)).Select(l => new GitCommitHash(l)).ToList<IGitCommitHash>();
 
             return CreateGitCommit(gitCommitHash, parentGitCommitHashes);
         }
 
-        private GitCommit CreateGitCommit(GitCommitHash gitCommitHash, List<GitCommitHash> parentCommitHashes)
+        private IGitCommit CreateGitCommit(IGitCommitHash gitCommitHash, List<IGitCommitHash> parentCommitHashes)
         {
-            GitCommit gitGommit = _gitCommits[gitCommitHash.ToString()] ?? _gitCommits.AddCommit(gitCommitHash.ToString());
+            IGitCommit gitGommit = _gitCommits[gitCommitHash.ToString()] ?? _gitCommits.AddCommit(gitCommitHash.ToString());
 
-            foreach (GitCommitHash parentCommitHash in parentCommitHashes)
+            foreach (IGitCommitHash parentCommitHash in parentCommitHashes)
             {
-                GitCommit parentGitCommit = _gitCommits[parentCommitHash.ToString()] ?? _gitCommits.AddCommit(parentCommitHash.ToString());
+                IGitCommit parentGitCommit = _gitCommits[parentCommitHash.ToString()] ?? _gitCommits.AddCommit(parentCommitHash.ToString());
                 if (!gitGommit.GetParentHashes().Contains(parentGitCommit.GetHash()))
                 {
                     gitGommit.AddParent(parentGitCommit.GetHash());
@@ -71,7 +73,7 @@ namespace Vault2Git.Lib
             return gitGommit;
         }
 
-        internal VaultTx2GitTx CreateMapping(GitCommit gitCommit, VaultTx vaultTx)
+        internal VaultTx2GitTx CreateMapping(IGitCommit gitCommit, VaultTx vaultTx)
         {
             VaultTx2GitTx entry = _vaultTx2GitTxs.Add(gitCommit, vaultTx);
 
@@ -98,7 +100,7 @@ namespace Vault2Git.Lib
 
         internal SortedDictionary<long, VaultTx> GetVaultTransactionsToProcess(long latestTxId)
         {
-            return _vaultTxs.getVaultTxAfter(latestTxId);
+            return _vaultTxs.GetVaultTxAfter(latestTxId);
         }
 
         //internal VaultTx2GitTx GetMapping(VaultTx info)
@@ -125,7 +127,7 @@ namespace Vault2Git.Lib
         {
             using (var ms = new MemoryStream())
             {
-                using (var writer = new System.IO.StreamWriter(ms))
+                using (var writer = new StreamWriter(ms))
                 {
                     var xmlSettings = new XmlWriterSettings
                     {
@@ -142,16 +144,47 @@ namespace Vault2Git.Lib
             }
         }
 
+        public int LoadState(string mappingFilePath, string mappingSaveLocation, List<string> vaultRepoPaths, string[] gitLogXml)
+        {
+            int ticks = 0;
+            //load git authors and renamed branches from configuration
+            var (branches, authors) = Tools.ParseMapFile(mappingFilePath);
+            AddAuthors(authors);
+            AddRenamedBranches(branches);
+
+            // load vault commits from Vault Repo
+            foreach (string rp in vaultRepoPaths)
+            {
+               ticks += VaultPopulateInfo(rp);
+            }
+
+            // load git commits from git repo
+            GitPopulateInfo(gitLogXml);
+
+            
+            // Restore data from xml file
+            Dictionary<long, string> entries = Tools.ParseVault2GitFile(mappingSaveLocation);
+
+            foreach (var entry in entries)
+            {
+                CreateMapping(_gitCommits.AddCommit(entry.Value), _vaultTxs.Add(entry.Key));
+            }
+            
+            //Save(mappingSaveLocation);
+            return ticks;
+        }
+
+
         public static XElement Dictionary2Xml<TKey, TValue>(IDictionary<TKey, TValue> input)
         {
-            return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName),
-                new XAttribute("valueType", typeof(TValue).FullName),
+            return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName ?? string.Empty),
+                new XAttribute("valueType", typeof(TValue).FullName ?? string.Empty),
                 input.Select(kp => new XElement("entry", new XAttribute("key", kp.Key), kp.Value)));
         }
 
         public void BuildVaultTx2GitCommitFromList(List<VaultTx2GitTx> mapping)
         {
-            _vaultTx2GitTxs = new VaultTx2GitTxCollection(_gitCommits, _vaultTxs);
+            _vaultTx2GitTxs = new VaultTx2GitTxCollection();//_gitCommits, _vaultTxs);
 
             foreach (VaultTx2GitTx entry in mapping.OrderBy(l => l.TxId))
             {
@@ -159,9 +192,9 @@ namespace Vault2Git.Lib
             }
         }
 
-        internal GitCommitHash ReplaceCommitHash(GitCommitHash sourceGitCommitHash, GitCommitHash replacementCommitHash)
+        internal IGitCommitHash ReplaceCommitHash(IGitCommitHash sourceGitCommitHash, IGitCommitHash replacementCommitHash)
         {
-            return _gitCommits.ReplaceCommitHash(sourceGitCommitHash, replacementCommitHash);
+            return _gitCommits.ReplaceCommitHash(sourceGitCommitHash, replacementCommitHash).GetHash();
         }
 
         public void AddAuthors(Dictionary<string, string> authors)
@@ -177,17 +210,104 @@ namespace Vault2Git.Lib
         public string GetBranchName(string branchName)
         {
             branchName = branchName.ToLower().Replace(" ", string.Empty);
-            if (_renamedbranches.TryGetValue(branchName, out string renamedBranchName))
-            {
-                return renamedBranchName;
-            }
-            return branchName;
+            return _renamedbranches.TryGetValue(branchName, out string renamedBranchName) ? renamedBranchName : branchName;
         }
 
         public string GetGitAuthor(string vaultUser)
         {
             vaultUser = vaultUser.ToLower();
             return _authors.ContainsKey(vaultUser) ? _authors[vaultUser] : null;
+        }
+
+        private int VaultPopulateInfo(string repoPath)
+        {
+            var ticks = Environment.TickCount;
+
+            string[] pathToBranch = repoPath.Split('~');
+            string path = pathToBranch[0];
+            string branch = pathToBranch[1];
+
+            VaultTxHistoryItem[] historyItems;
+            VaultClientFolderColl repoFolders;
+
+            if (repoPath.EndsWith("*"))
+            {
+                repoFolders = ServerOperations.ProcessCommandListFolder(path, false).Folders;
+
+            }
+            else
+            {
+                repoFolders = new VaultClientFolderColl
+                {
+                    ServerOperations.ProcessCommandListFolder(path, false)
+                };
+            }
+
+            foreach (VaultClientFolder f in repoFolders)
+            {
+
+                string branchName;
+
+                if (branch == "*")
+                    branchName = GetBranchName(f.Name);
+                else
+                    branchName = GetBranchName(branch);
+
+                historyItems = ServerOperations.ProcessCommandVersionHistory(f.FullPath,
+                    0,
+                    VaultDateTime.Parse(RevisionStartDate),
+                    VaultDateTime.Parse(RevisionEndDate),
+                    0);
+
+                foreach (VaultTxHistoryItem i in historyItems)
+                {
+                    VaultTx info = CreateVaultTransaction(i.TxID, branchName);
+
+                    info.Path = f.FullPath;
+                    info.Version = i.Version;
+                    info.Comment = i.Comment;
+                    info.Login = i.UserLogin;
+                    info.TimeStamp = i.TxDate;
+                    if (i.Comment != null)
+                    {
+                        info.MergedFrom = (i.Comment.TrimStart().StartsWith("Merge Branches : Origin=$")) ? i.Comment.Trim().Split(Environment.NewLine.ToCharArray())[0].Split('/').LastOrDefault() : string.Empty;
+                    }
+                }
+            }
+
+            return Environment.TickCount - ticks;
+        }
+
+        private void GitPopulateInfo(string[] gitLogXml)
+        {
+            var reader = new StringReader(string.Join(Environment.NewLine, gitLogXml));
+            
+            var xDoc = XDocument.Load(reader).Root;
+
+            var elements = xDoc?.Descendants("c");
+
+            if (elements != null)
+            {
+                foreach (XElement e in elements)
+                {
+                    {
+                        if ((e.Descendants(XName.Get("D")).FirstOrDefault()?.Value ?? "").Split(',').Any(d => d.Trim() == "replaced"))
+                            continue;
+
+                        string commitHash = e.Descendants("H").FirstOrDefault()?.Value;
+                        var comment = e.Descendants("N").FirstOrDefault()?.Value;
+                        List<string> parentCommitHashes = e.Descendants("P").FirstOrDefault()?.Value.Split(' ')
+                            .Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+                        var commit = CreateGitCommit(commitHash, parentCommitHashes);
+                        commit.Comment = comment;
+                    }
+                }
+            }
+        }
+
+        public VaultTx GetVaultLastTransactionProcessed()
+        {
+            return _vaultTx2GitTxs.GetLastVaultTxProcessed();
         }
     }
 }

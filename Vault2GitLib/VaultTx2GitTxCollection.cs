@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using GitLib.Interfaces;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Xml;
 
 namespace Vault2Git.Lib
@@ -7,14 +10,10 @@ namespace Vault2Git.Lib
     {
         public class VaultTx2GitTxCollection
         {
-            private GitCommitCollection _gitCommits;
-            private VaultTxCollection _vaultTxs;
             private SortedDictionary<long, VaultTx2GitTx> _vaultTx2GitTx;
 
-            internal VaultTx2GitTxCollection(GitCommitCollection gitCommits, VaultTxCollection vaultTxs)
+            internal VaultTx2GitTxCollection()
             {
-                _gitCommits = gitCommits;
-                _vaultTxs = vaultTxs;
                 _vaultTx2GitTx = new SortedDictionary<long, VaultTx2GitTx>();
             }
 
@@ -25,34 +24,34 @@ namespace Vault2Git.Lib
                 {
 
                     writer.WriteStartElement("entry");
-                    writer.WriteAttributeString("TxId", version.TxId.ToString());
-                    writer.WriteAttributeString("Branch", version.Branch.ToString());
-                    writer.WriteAttributeString("GitHash", version.GitCommit.GetHash().ToString());
+                    writer.WriteAttributeString("TxId", version.TxId.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("Branch", version.Branch.ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("GitHash", version.GitCommit.GetHash().ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("Version", version.VaultTx.Version.ToString(CultureInfo.InvariantCulture));
                     writer.WriteEndElement();
                 }
                 writer.WriteEndElement();
             }
 
-            internal VaultTx2GitTx Add(GitCommit gitCommit, VaultTx vaultTx)
+            internal VaultTx2GitTx Add(IGitCommit gitCommit, VaultTx vaultTx)
+            {
+                return _vaultTx2GitTx.ContainsKey(vaultTx.TxId) ? _vaultTx2GitTx[vaultTx.TxId] : CreateVaultTx2GitTxEntry(gitCommit, vaultTx);
+            }
+
+            private VaultTx2GitTx CreateVaultTx2GitTxEntry(IGitCommit gitCommit, VaultTx vaultTx)
             {
                 VaultTx2GitTx entry = new VaultTx2GitTx(gitCommit, vaultTx);
                 _vaultTx2GitTx.Add(entry.TxId, entry);
-                return entry;
+                return _vaultTx2GitTx[vaultTx.TxId];
             }
-
-            //internal VaultTx2GitTx GetMapping(VaultTx info)
-            //{
-            //    if (!_vaultTx2GitTx.Where(a => a.Value.VaultTx.TxId == info.TxId).Any())
-            //    {
-            //        string branch = "master";
-            //        return _vaultTx2GitTx.Where(k => k.Value.Branch == branch).LastOrDefault().Value;
-            //    }
-            //    else return _vaultTx2GitTx.Where(a => a.Value.VaultTx.TxId == info.TxId).FirstOrDefault().Value;
-            //}
 
             internal SortedDictionary<long, VaultTx2GitTx> GetMappingDictionary()
             {
                 return _vaultTx2GitTx;
+            }
+            internal VaultTx GetLastVaultTxProcessed()
+            {
+                return _vaultTx2GitTx.LastOrDefault().Value.VaultTx;
             }
         }
     }

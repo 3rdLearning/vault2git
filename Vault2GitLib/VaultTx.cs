@@ -7,14 +7,14 @@ namespace Vault2Git.Lib
     {
         public class VaultTx
         {
-            private long _txId;
-            private string _branch;
+            private readonly long _txId;
+            private readonly string _branch;
             private string _path;
             private long _version;
             private string _comment;
             private string _login;
             private string _mergedFrom;
-            private VaultLib.VaultDateTime _timeStamp;
+            private VaultDateTime _timeStamp;
 
             public long TxId => _txId;
             public string Branch => _branch;

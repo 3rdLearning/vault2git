@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using GitLib.Interfaces;
+using System.Collections.Generic;
 
 namespace Vault2Git.Lib
 {
@@ -7,9 +8,9 @@ namespace Vault2Git.Lib
         public class VaultTx2GitTx
         {
             private readonly VaultTx _vaultTx;
-            private readonly GitCommit _gitCommit;
+            private readonly IGitCommit _gitCommit;
 
-            public VaultTx2GitTx(GitCommit gitCommit, VaultTx vaultTx)
+            public VaultTx2GitTx(IGitCommit gitCommit, VaultTx vaultTx)
             {
                 _gitCommit = gitCommit;
                 _vaultTx = vaultTx;
@@ -17,7 +18,7 @@ namespace Vault2Git.Lib
 
             public VaultTx VaultTx { get => _vaultTx; }
 
-            public GitCommit GitCommit { get => _gitCommit; }
+            public IGitCommit GitCommit { get => _gitCommit; }
 
             public string Branch { get => _vaultTx.Branch; }
 
@@ -35,7 +36,7 @@ namespace Vault2Git.Lib
             {
                 int hashCode = 2124377560;
                 hashCode = hashCode * -1521134295 + EqualityComparer<VaultTx>.Default.GetHashCode(_vaultTx);
-                hashCode = hashCode * -1521134295 + EqualityComparer<GitCommit>.Default.GetHashCode(_gitCommit);
+                hashCode = hashCode * -1521134295 + EqualityComparer<IGitCommit>.Default.GetHashCode(_gitCommit);
                 return hashCode;
             }
         }

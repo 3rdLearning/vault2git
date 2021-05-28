@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NUnit.Framework;
 using System.IO;
 
 namespace Vault2GitTest
 {
     [TestFixture]
-    public class CSProjTest
+    public class CsProjTest
     {
         [Test]
         [Ignore("files can be different in CRs, so better to check visually")]

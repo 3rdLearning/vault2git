@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Vault2Git.CLI</RootNamespace>
     <AssemblyName>Vault2Git</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <StartupObject>Vault2Git.CLI.Program</StartupObject>
     <FileUpgradeFlags>
@@ -86,6 +86,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="App.Codesmith.Utility.config" />
     <None Include="App.QTICreator_4.5..config">
       <SubType>Designer</SubType>
     </None>

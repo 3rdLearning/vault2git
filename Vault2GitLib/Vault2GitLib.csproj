@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Vault2Git.Lib</RootNamespace>
     <AssemblyName>Vault2GitLib</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
@@ -94,13 +94,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GitCommit.cs" />
-    <Compile Include="GitCommitCollection.cs" />
-    <Compile Include="GitCommitHashCollection.cs" />
-    <Compile Include="GitCommitHash.cs" />
-    <Compile Include="Interfaces\IGitCommit.cs" />
-    <Compile Include="Interfaces\IGitCommitHash.cs" />
-    <Compile Include="Interfaces\IGitRepository.cs" />
     <Compile Include="Vault2GitState.cs" />
     <Compile Include="VaultTx2GitTx.cs" />
     <None Include="Graph1.dgml" />
@@ -130,6 +123,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Interfaces\" />
     <Folder Include="libs\" />
   </ItemGroup>
   <ItemGroup>
@@ -144,6 +138,12 @@
     <PackageReference Include="System.ValueTuple">
       <Version>4.5.0</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GitLib\GitLib.csproj">
+      <Project>{e42265e5-cd62-4329-a889-f0cd0784e030}</Project>
+      <Name>GitLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

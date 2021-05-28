@@ -9,8 +9,6 @@ namespace Vault2Git.Lib
 {
     public static class Tools
     {
-        static Dictionary<string, string> authors = new Dictionary<string, string>();
-        static Dictionary<string, string> branches = new Dictionary<string, string>();
 
         public static void SaveMapping<TKey, TValue>(IDictionary<TKey, TValue> mappingDictionary, string fileName)
         {
@@ -19,10 +17,9 @@ namespace Vault2Git.Lib
 
         public static XElement Dictionary2Xml<TKey, TValue>(IDictionary<TKey, TValue> input)
         {
-            return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName),
-                new XAttribute("valueType", typeof(TValue).FullName),
+            return new XElement("dictionary", new XAttribute("keyType", typeof(TKey).FullName ?? string.Empty),
+                new XAttribute("valueType", typeof(TValue).FullName ?? string.Empty),
                 input.Select(kp => new XElement("entry", new XAttribute("key", kp.Key), kp.Value)));
-
         }
 
         public static bool SaveFile(string saveFileName, string contents)
@@ -54,8 +51,10 @@ namespace Vault2Git.Lib
                 File.Copy(source, dest);
         }
 
-        public static (Dictionary<string, String>, Dictionary<string, string>) ParseMapFile(string path)
+        public static (Dictionary<string, string>, Dictionary<string, string>) ParseMapFile(string path)
         {
+            Dictionary<string, string> authors = new Dictionary<string, string>();
+            Dictionary<string, string> branches = new Dictionary<string, string>();
 
             if (File.Exists(path))
             {
@@ -81,6 +80,27 @@ namespace Vault2Git.Lib
                 }
             }
             return (branches, authors);
+        }
+
+        public static Dictionary<long, string> ParseVault2GitFile(string path)
+        {
+            Dictionary<long, string> entries = new Dictionary<long, string>();
+
+            if (File.Exists(path))
+            {
+                XmlDocument xml = new XmlDocument();
+                xml.Load(path);
+
+
+                foreach (XmlElement element in xml.GetElementsByTagName("entry"))
+                {
+                    long.TryParse(element.Attributes["TxId"].Value, out long txid);
+                    string gitHash = element.Attributes["GitHash"].Value;
+
+                    entries.Add(txid, gitHash);
+                }
+            }
+            return entries;
         }
     }
 }
