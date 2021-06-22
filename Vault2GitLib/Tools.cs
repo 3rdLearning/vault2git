@@ -28,7 +28,7 @@ namespace Vault2Git.Lib
             return true;
         }
 
-        public static void WriteProgressInfo(string message, TimeSpan processingTime, int completedVersion, int totalVersion,
+        public static void WriteProgressInfo(TimeSpan processingTime, int completedVersion, int totalVersion,
            TimeSpan totalProcessingTime)
         {
             try
@@ -51,15 +51,15 @@ namespace Vault2Git.Lib
                 File.Copy(source, dest);
         }
 
-        public static (Dictionary<string, string>, Dictionary<string, string>) ParseMapFile(string path)
+        public static (Dictionary<string, string>, Dictionary<string, string>) ParseMapFile(string branchRenameFile, string AuthorMappingFile)
         {
             Dictionary<string, string> authors = new Dictionary<string, string>();
             Dictionary<string, string> branches = new Dictionary<string, string>();
 
-            if (File.Exists(path))
+            if (File.Exists(AuthorMappingFile))
             {
                 XmlDocument xml = new XmlDocument();
-                xml.Load(path);
+                xml.Load(branchRenameFile);
 
                 foreach (XmlElement element in xml.GetElementsByTagName("author"))
                 {
@@ -70,6 +70,12 @@ namespace Vault2Git.Lib
 
                     authors.Add(vaultname.ToLower(), gitname);
                 }
+            }
+            
+            if (File.Exists(branchRenameFile))
+            {
+                XmlDocument xml = new XmlDocument();
+                xml.Load(branchRenameFile);
 
                 foreach (XmlElement element in xml.GetElementsByTagName("branch"))
                 {

@@ -10,7 +10,7 @@ namespace Vault2Git.Lib
     {
         public class VaultTx2GitTxCollection
         {
-            private SortedDictionary<long, VaultTx2GitTx> _vaultTx2GitTx;
+            private readonly SortedDictionary<long, VaultTx2GitTx> _vaultTx2GitTx;
 
             internal VaultTx2GitTxCollection()
             {

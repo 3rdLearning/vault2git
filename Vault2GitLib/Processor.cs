@@ -40,11 +40,12 @@ namespace Vault2Git.Lib
 
             public int GitGcInterval = 200;
 
-            public string MappingFilePath { get; set; }
+            public string BranchRenameFilePath { get; set; }
+            public string Vault2GitAuthorMappingFilePath { get; set; }
 
             public string GitCommitMessageTempFile { get; set; }
 
-            public Vault2GitState ConversionState = new Vault2GitState();
+            public Vault2GitState ConversionState;
 
             //callback
             public Func<long, long, int, bool> Progress;
@@ -118,6 +119,7 @@ namespace Vault2Git.Lib
             /// <returns></returns>
             public bool Pull(List<string> git2VaultRepoPath, long limitCount, bool ignoreLabels)
             {
+                ConversionState = new Vault2GitState();
                 var completedStepCount = 0;
                 var versionProcessingTime = new Stopwatch();
                 var overallProcessingTime = new Stopwatch();
@@ -147,7 +149,7 @@ namespace Vault2Git.Lib
 
                     Console.Write($"Fetching history from vault from {RevisionStartDate} to {RevisionEndDate}... ");
 
-                    ConversionState.LoadState(MappingFilePath, MappingSaveLocation, vaultRepoPaths, GetGitLogs());
+                    ConversionState.LoadState(BranchRenameFilePath, Vault2GitAuthorMappingFilePath, MappingSaveLocation, vaultRepoPaths, GetGitLogs());
 
 
                     // get vault version to use as starting point
@@ -240,7 +242,7 @@ namespace Vault2Git.Lib
                             break;
                         completedStepCount++;
                         versionProcessingTime.Stop();
-                        Tools.WriteProgressInfo(string.Empty, versionProcessingTime.Elapsed, completedStepCount, versionsToProcess.Count, overallProcessingTime.Elapsed);
+                        Tools.WriteProgressInfo(versionProcessingTime.Elapsed, completedStepCount, versionsToProcess.Count, overallProcessingTime.Elapsed);
 
                         //check if escape key is pressed
                         if (Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)
@@ -250,8 +252,6 @@ namespace Vault2Git.Lib
                         i++;
 
                     }
-
-                    //BuildGrafts();
 
                     ticks = VaultFinalize(vaultRepoPaths);
 
@@ -265,6 +265,13 @@ namespace Vault2Git.Lib
                     Progress?.Invoke(_progressSpecialVersionFinalize, 0L, ticks);
                 }
                 return false;
+            }
+
+            public void Finish()
+            {
+                Console.WriteLine();
+                Console.WriteLine("Logging out of Vault");
+                VaultLogout();
             }
 
 
@@ -411,7 +418,6 @@ namespace Vault2Git.Lib
                 {
                     //complete
                     ServerOperations.client.ClientInstance.EndLabelQuery(qryToken);
-                    VaultLogout();
                     GitFinalize();
                 }
                 return true;
@@ -629,7 +635,7 @@ namespace Vault2Git.Lib
                 if (items.Any())
                     sourceBranch = items.First().ItemPath1.Split('/').LastOrDefault();
                 else
-                    sourceBranch = "master:";
+                    sourceBranch = "master";
 
                 VaultTx2GitTx gitStartPoint = ConversionState.GetLastBranchMapping(ConversionState.GetBranchName(sourceBranch));
 
@@ -642,20 +648,26 @@ namespace Vault2Git.Lib
 
             private int GitMerge(string sourceBranch)
             {
-                int ticks = RunGitCommand(string.Format(CultureInfo.InvariantCulture, GitMergeCmd, sourceBranch), string.Empty, out string[] msgs, out string[] errorMsgs);
 
-                /* `git merge` command outputs success on Standard Error Output
-				 * 
-				 * The "Already up to date" message occurs if git doesn't see any changes. In this case, the merge 
-				 * isn't created, but we still want to treat it as a success and to proceed. The source commit might
-				 * be empty, or it might contain a change.  If it has a change, it was not the result of a merge.  
-				 * It was probably a pre-commit change after a merge failed to create make the desired change.  This 
-				 * would happen if the source repository already had the change marked as handled.
-				*/
-                if (!((errorMsgs.Any() && errorMsgs[0].StartsWith("Automatic merge went well")) || (msgs.Any() && msgs[0].StartsWith("Already up to date"))))
+                int ticks = GitVerifyBranchExists(sourceBranch, out bool brachExists);
+                if (brachExists)
                 {
-                    throw new InvalidOperationException($"Merge failed with message: {msgs[0]}");
+                    ticks += RunGitCommand(string.Format(CultureInfo.InvariantCulture, GitMergeCmd, sourceBranch), string.Empty, out string[] msgs, out string[] errorMsgs);
+                
+                    /* `git merge` command outputs success on Standard Error Output
+				     * 
+				     * The "Already up to date" message occurs if git doesn't see any changes. In this case, the merge 
+				     * isn't created, but we still want to treat it as a success and to proceed. The source commit might
+				     * be empty, or it might contain a change.  If it has a change, it was not the result of a merge.  
+				     * It was probably a pre-commit change after a merge failed to create make the desired change.  This 
+				     * would happen if the source repository already had the change marked as handled.
+				    */
+                    if (!((errorMsgs.Any() && errorMsgs[0].StartsWith("Automatic merge went well")) || (msgs.Any() && msgs[0].StartsWith("Already up to date"))))
+                    {
+                        throw new InvalidOperationException($"Merge failed with message: {msgs[0]}");
+                    }
                 }
+
                 return ticks;
             }
 
@@ -867,7 +879,6 @@ namespace Vault2Git.Lib
 
             private int VaultLogin()
             {
-                Console.Write($"Starting Vault login to {VaultServer} for repository {VaultRepository}... ");
                 var ticks = Environment.TickCount;
                 if (ServerOperations.client.ClientInstance == null)
                 {
@@ -875,6 +886,7 @@ namespace Vault2Git.Lib
                 }
                 if (ServerOperations.client.ClientInstance.ConnectionStateType == ConnectionStateType.Unconnected)
                 {
+                    Console.Write($"Starting Vault login to {VaultServer} for repository {VaultRepository}... ");
                     ServerOperations.client.ClientInstance.WorkingFolderOptions.StoreDataInWorkingFolders = false;
                     ServerOperations.client.ClientInstance.Connection.SetTimeouts(Convert.ToInt32(TimeSpan.FromMinutes(10).TotalSeconds)
                         , Convert.ToInt32(TimeSpan.FromMinutes(10).TotalSeconds));
@@ -889,9 +901,9 @@ namespace Vault2Git.Lib
                     ServerOperations.client.MakeBackups = false;
                     ServerOperations.client.AutoCommit = false;
                     ServerOperations.client.Verbose = true;
-                    //_loginDone = true;
+                    Console.WriteLine($"done!");
                 }
-                Console.WriteLine($"done!");
+               
                 return Environment.TickCount - ticks;
             }
 

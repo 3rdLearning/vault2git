@@ -19,12 +19,12 @@ namespace Vault2Git.Lib
         /// <summary>
         /// An object to manage references to all commits
         /// </summary>
-        private IGitCommitCollection _gitCommits;
+        private readonly IGitCommitCollection _gitCommits;
 
         /// <summary>
         /// An object to manage all transactions
         /// </summary>
-        private VaultTxCollection _vaultTxs;
+        private readonly VaultTxCollection _vaultTxs;
 
         /// <summary>
         /// An object to manage all transactions
@@ -32,7 +32,7 @@ namespace Vault2Git.Lib
         private VaultTx2GitTxCollection _vaultTx2GitTxs;
 
 
-        private Dictionary<string, VaultTx2GitTx> _branchMapping;
+        private readonly Dictionary<string, VaultTx2GitTx> _branchMapping;
 
         private Dictionary<string, string> _renamedbranches;
         private Dictionary<string, string> _authors;
@@ -144,11 +144,11 @@ namespace Vault2Git.Lib
             }
         }
 
-        public int LoadState(string mappingFilePath, string mappingSaveLocation, List<string> vaultRepoPaths, string[] gitLogXml)
+        public int LoadState(string branchRenameFilePath, string authorMappingFilePath, string mappingSaveLocation, List<string> vaultRepoPaths, string[] gitLogXml)
         {
             int ticks = 0;
             //load git authors and renamed branches from configuration
-            var (branches, authors) = Tools.ParseMapFile(mappingFilePath);
+            var (branches, authors) = Tools.ParseMapFile(branchRenameFilePath,authorMappingFilePath);
             AddAuthors(authors);
             AddRenamedBranches(branches);
 
